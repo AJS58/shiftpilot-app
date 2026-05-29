@@ -1,0 +1,2382 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>ShiftPilot – Driver Earnings Tracker</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="theme-color" content="#1f66ff">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="ShiftPilot">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<style>
+:root{--bg:#eaf2ff;--card:#ffffff;--text:#10233f;--muted:#6f84a0;--blue:#246bff;--green:#2eb85c;--red:#d44a4a;--orange:#f59e0b;--purple:#6f5cff}
+body.dark{--bg:#0f1724;--card:#172235;--text:#edf4ff;--muted:#a8b8cf}
+*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Arial,sans-serif;background:var(--bg);color:var(--text);padding:10px}
+#splash{position:fixed;inset:0;background:#fff;z-index:99999;display:flex;align-items:center;justify-content:center;transition:opacity .6s ease}
+#splash img{max-width:420px;width:85%;height:auto;object-fit:contain;border-radius:28px;box-shadow:0 20px 60px rgba(0,0,0,.18)}
+.app{max-width:520px;margin:auto;background:var(--card);border-radius:24px;overflow:hidden;box-shadow:0 20px 50px #0003}
+.header{background:linear-gradient(135deg,#1f66ff,#3f86ff);color:white;text-align:center;padding:22px}
+.header h1{margin:0}.header p{margin:6px 0 0;font-size:12px}
+.content{padding:14px}
+.tabs{display:grid;grid-template-columns:repeat(6,1fr);gap:5px;background:var(--bg);padding:6px;border-radius:16px;margin-bottom:14px}
+.tab{border:0;border-radius:12px;padding:11px 6px;font-weight:900;background:transparent;color:var(--muted);font-size:13px}
+.tab.active{background:var(--blue);color:white}
+.panel{display:none}.panel.active{display:block}
+.card,.row,.metric{background:linear-gradient(145deg,#ffffff,#f4f8ff);border:1px solid #dbe7ff;border-radius:24px;padding:16px;margin-bottom:12px;box-shadow:0 12px 30px rgba(27,52,80,.12);transition:transform .25s ease,box-shadow .25s ease}.metric:hover{transform:translateY(-2px);box-shadow:0 18px 40px rgba(27,52,80,.18)}
+.field{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:center;border-bottom:1px solid #8aa1bd33;padding:9px 0}
+.field:last-child{border-bottom:0}
+label{font-weight:900}small{display:block;color:var(--muted)}
+input,select{width:100%;padding:13px;border-radius:14px;border:1px solid #cad8ea;font-weight:800;font-size:16px;background:var(--card);color:var(--text)}
+.btn{width:100%;border:0;border-radius:16px;padding:15px;font-size:17px;font-weight:900;color:white;margin-top:8px}
+.blue{background:var(--blue)}.green{background:var(--green)}.red{background:var(--red)}.grey{background:#66758a}.orange{background:#f59e0b}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.metric h3{margin:0 0 6px;color:var(--muted);font-size:12px;text-transform:uppercase}
+.value{font-size:28px;font-weight:900;letter-spacing:-1px}
+.hero{border-radius:26px;padding:22px;margin-top:12px;color:white;font-size:32px;font-weight:900;box-shadow:0 18px 40px rgba(0,0,0,.18);position:relative;overflow:hidden}.hero:before{content:'';position:absolute;right:-40px;top:-40px;width:120px;height:120px;background:rgba(255,255,255,.12);border-radius:50%}
+.profit{background:var(--green)}.loss{background:var(--red)}
+.row{display:flex;justify-content:space-between;gap:8px}
+.row b{font-size:15px}.row span{text-align:right;font-weight:900}
+.positive{color:#1f8a2f}.negative{color:#d94b4b}
+.footer{text-align:center;color:var(--muted);font-size:12px;padding:18px}
+.notice{font-size:12px;color:var(--muted);line-height:1.4}
+.chart-row{display:grid;grid-template-columns:44px 1fr 72px;gap:8px;align-items:center;margin:10px 0}
+.chart-label{font-weight:900;font-size:12px;color:var(--muted)}
+.chart-track{height:14px;border-radius:99px;background:#dce7f7;overflow:hidden}
+body.dark .chart-track{background:#26354d}
+.chart-fill{height:100%;border-radius:99px;background:linear-gradient(90deg,#246bff,#6f5cff,#2eb85c);min-width:3px;box-shadow:0 0 12px rgba(36,107,255,.35)}
+.goal-wrap{height:14px;border-radius:99px;background:#dce7f7;overflow:hidden;margin-top:10px}
+.goal-fill{height:100%;background:linear-gradient(90deg,#1f66ff,#35c85a);border-radius:99px}
+.source-bar{display:grid;grid-template-columns:92px 1fr 54px;gap:8px;align-items:center;margin:10px 0}
+@media(max-width:480px){.field,.grid{grid-template-columns:1fr}.tabs{grid-template-columns:repeat(2,1fr)}}
+@media print{#splash,.tabs,.btn,.no-print{display:none!important}.panel{display:block!important}body{background:white}.app{box-shadow:none}}
+
+#updatePrompt{position:fixed;left:14px;right:14px;bottom:18px;z-index:999999;display:none;background:#ffffff;color:#10233f;border-radius:22px;padding:16px;box-shadow:0 20px 60px rgba(0,0,0,.28);border:1px solid rgba(36,107,255,.18);}
+body.dark #updatePrompt{background:#172235;color:#edf4ff}
+#updatePrompt b{display:block;font-size:16px;margin-bottom:5px}
+#updatePrompt p{margin:0 0 12px;color:#6f84a0;font-size:13px;line-height:1.35}
+#updatePrompt .update-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+
+.nav-valid{color:#1f8a2f!important}.nav-invalid{color:#d94b4b!important}
+#scanPreview{box-shadow:0 8px 24px rgba(0,0,0,.12)}
+
+#hmrcReportModal{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:999999;display:none;align-items:center;justify-content:center;padding:16px}
+#hmrcReportBox{background:#fff;color:#10233f;max-width:900px;width:100%;max-height:88vh;overflow:auto;border-radius:22px;padding:22px}
+body.dark #hmrcReportBox{background:#172235;color:#edf4ff}
+.hmrc-report-table{width:100%;border-collapse:collapse;font-size:13px;margin-top:12px}
+.hmrc-report-table th,.hmrc-report-table td{border-bottom:1px solid #dbe7ff;padding:8px;text-align:left;vertical-align:top}
+.hmrc-report-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:14px 0}
+.hmrc-report-summary div{border:1px solid #dbe7ff;border-radius:14px;padding:10px}
+@media print{body>*:not(#hmrcReportModal){display:none!important}#hmrcReportModal{display:block!important;position:static;background:white;padding:0}#hmrcReportBox{max-height:none;box-shadow:none;border-radius:0}.no-print{display:none!important}}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js">
+function extractUKPostcodeFromText(text){
+  const compact = String(text || "").toUpperCase().replace(/\s+/g, " ");
+  const match = compact.match(/\b([A-Z]{1,2}[0-9][A-Z0-9]?)\s*([0-9][A-Z]{2})\b/);
+  if(!match) return "";
+  return (match[1] + " " + match[2]).replace(/\s+/g, " ").trim();
+}
+
+function buildBestAddressFromOCR(text){
+  let cleaned = String(text || "").replace(/\r/g, "\n").replace(/[|_~]/g, " ").trim();
+  const postcode = extractUKPostcodeFromText(cleaned);
+  let lines = cleaned.split(/\n+/).map(l => l.trim()).filter(Boolean);
+
+  lines = lines.filter(l => {
+    const u = l.toUpperCase();
+    if(/^\d{1,2}:\d{2}/.test(u)) return false;
+    if(u.includes(" PM") || u.includes(" AM")) return false;
+    if(u === "PM" || u === "AM") return false;
+    if(u.includes("NONE")) return false;
+    if(u.length < 2) return false;
+    return true;
+  });
+
+  let joined = lines.join(" ").replace(/\s+/g, " ").trim();
+  if(postcode){
+    joined = joined.replace(new RegExp(postcode.replace(" ",""), "i"), postcode);
+    if(!joined.toUpperCase().includes(postcode)) joined += " " + postcode;
+  }
+  return joined || postcode || cleaned.replace(/\s+/g, " ").trim();
+}
+
+async function handleAddressScan(event){
+  const file = event.target.files && event.target.files[0];
+  const status = document.getElementById("scanStatus");
+  const preview = document.getElementById("scanPreview");
+  const resultBox = document.getElementById("ocrResultText");
+  const useBtn = document.getElementById("useOcrTextBtn");
+
+  if(!file){
+    if(status) status.innerText = "No image selected";
+    return;
+  }
+
+  if(preview){
+    preview.src = URL.createObjectURL(file);
+    preview.style.display = "block";
+  }
+  if(resultBox){
+    resultBox.style.display = "block";
+    resultBox.value = "";
+  }
+  if(useBtn) useBtn.style.display = "none";
+  if(status) status.innerText = "Running OCR locally in the browser...";
+
+  let detectedText = "";
+
+  try{
+    if(window.Tesseract && Tesseract.recognize){
+      const result = await Tesseract.recognize(file, "eng", {
+        logger: m => {
+          if(status && m.status){
+            const pct = m.progress ? " " + Math.round(m.progress * 100) + "%" : "";
+            status.innerText = "OCR: " + m.status + pct;
+          }
+        }
+      });
+      detectedText = result && result.data && result.data.text ? result.data.text : "";
+    }
+  }catch(e){
+    detectedText = "";
+  }
+
+  if(detectedText && detectedText.trim()){
+    const bestAddress = buildBestAddressFromOCR(detectedText);
+    const postcode = extractUKPostcodeFromText(detectedText);
+
+    if(resultBox){
+      resultBox.value = bestAddress;
+      resultBox.style.display = "block";
+    }
+    if(useBtn) useBtn.style.display = "block";
+
+    applyScannedAddress(bestAddress);
+
+    if(status){
+      status.innerText = postcode ? "OCR complete. Postcode detected: " + postcode : "OCR complete. Please check/correct the detected address.";
+    }
+    return;
+  }
+
+  const manual = prompt("OCR could not read the address clearly. Type or paste the address/postcode shown in the image:", "");
+  if(manual && manual.trim()){
+    applyScannedAddress(manual.trim());
+    if(resultBox){
+      resultBox.value = manual.trim();
+      resultBox.style.display = "block";
+    }
+    if(useBtn) useBtn.style.display = "block";
+    if(status) status.innerText = "Address added manually from scan.";
+  } else {
+    if(status) status.innerText = "Scan captured. No address added.";
+  }
+}
+
+function useCorrectedOcrText(){
+  const resultBox = document.getElementById("ocrResultText");
+  if(!resultBox || !resultBox.value.trim()){
+    alert("No OCR text to use.");
+    return;
+  }
+  applyScannedAddress(resultBox.value.trim());
+  alert("Corrected OCR text added to navigation field.");
+}
+
+function applyScannedAddress(text){
+  const nav = document.getElementById("navAddress");
+  if(!nav) return;
+  nav.value = String(text || "").replace(/\n/g, " ").replace(/\s+/g, " ").trim();
+  if(typeof formatPostcodeLive === "function") formatPostcodeLive();
+}
+
+function clearScannedAddress(){
+  const nav = document.getElementById("navAddress");
+  const status = document.getElementById("scanStatus");
+  const preview = document.getElementById("scanPreview");
+  const input = document.getElementById("addressScanInput");
+  const resultBox = document.getElementById("ocrResultText");
+  const useBtn = document.getElementById("useOcrTextBtn");
+
+  if(nav) nav.value = "";
+  if(status) status.innerText = "Waiting for scan";
+  if(preview){ preview.src = ""; preview.style.display = "none"; }
+  if(input) input.value = "";
+  if(resultBox){ resultBox.value = ""; resultBox.style.display = "none"; }
+  if(useBtn) useBtn.style.display = "none";
+}
+
+
+function manualCheckForUpdates(){
+  if(!("serviceWorker" in navigator)){
+    alert("Service worker updates are not supported in this browser.");
+    return;
+  }
+  navigator.serviceWorker.getRegistration().then(reg => {
+    if(reg){
+      reg.update().then(() => {
+        alert("Update check complete. If an update is available, the update prompt will appear shortly.");
+      });
+    } else {
+      alert("No service worker registration found yet. Reopen the app and try again.");
+    }
+  }).catch(() => alert("Unable to check for updates."));
+}
+
+function clearAppCachesAndReload(){
+  if("caches" in window){
+    caches.keys().then(keys => Promise.all(keys.map(key => caches.delete(key)))).then(() => window.location.reload());
+  } else {
+    window.location.reload();
+  }
+}
+
+
+function extractUKPostcodeFromText(text){
+ const c=String(text||"").toUpperCase().replace(/\s+/g," ");
+ const m=c.match(/\b([A-Z]{1,2}[0-9][A-Z0-9]?)\s*([0-9][A-Z]{2})\b/);
+ return m?(m[1]+" "+m[2]).trim():"";
+}
+function buildBestAddressFromOCR(text){
+ let postcode=extractUKPostcodeFromText(text);
+ let lines=String(text||"").replace(/\r/g,"\n").split(/\n+/).map(l=>l.replace(/\s+/g," ").trim()).filter(Boolean);
+ let streetWords="CLOSE|ROAD|STREET|LANE|AVENUE|DRIVE|WAY|GARDENS|GROVE|PLACE|CRESCENT|COURT|MEWS|TERRACE|HILL";
+ lines=lines.filter(l=>{
+   let u=l.toUpperCase();
+   if(/\d{1,2}[:.]\d{2}[:.]\d{2}/.test(u)) return false;
+   if(/^\d{1,2}[:.]\d{2}/.test(u)) return false;
+   if(u.includes("PM")||u.includes("AM")||u.includes("NONE")||u.includes("SUMMARY")||u.includes("SAUCE")) return false;
+   return true;
+ });
+ let street="";
+ for(const l of lines){
+   if(new RegExp(streetWords,"i").test(l)){street=l;break;}
+ }
+ if(street){
+   const re=new RegExp("(\\d{1,4}\\s+[A-Z][A-Z\\s']{2,}\\s+(?:"+streetWords+"))","i");
+   const matches=[...street.matchAll(new RegExp(re,"gi"))];
+   if(matches.length) street=matches[matches.length-1][1].trim();
+   street=street.replace(/\s+/g," ").trim();
+ }
+ let town="";
+ if(postcode){
+   const pc=postcode.replace(/\s/g,"");
+   const t=lines.find(l=>l.toUpperCase().replace(/\s/g,"").includes(pc));
+   if(t) town=t.replace(new RegExp(pc,"i"),postcode).replace(postcode,"").replace(/\bUK\b/ig,"").replace(/[,]+/g," ").replace(/\s+/g," ").trim();
+ }
+ let parts=[];
+ if(street) parts.push(street);
+ if(town && (!street || !street.toUpperCase().includes(town.toUpperCase()))) parts.push(town);
+ if(postcode) parts.push(postcode);
+ return parts.join(" ").replace(/\s+/g," ").trim() || (street || postcode || String(text||"").replace(/\s+/g," ").trim());
+}
+function showOcrActionButtons(){
+ const a=document.getElementById("useOcrTextBtn"),b=document.getElementById("ocrNavButtons"),c=document.getElementById("useOcrWazeBtn");
+ if(a)a.style.display="block"; if(b)b.style.display="grid"; if(c)c.style.display="block";
+}
+async function handleAddressScan(event){
+ const file=event.target.files&&event.target.files[0],status=document.getElementById("scanStatus"),preview=document.getElementById("scanPreview"),box=document.getElementById("ocrResultText");
+ if(!file){if(status)status.innerText="No image selected";return;}
+ if(preview){preview.src=URL.createObjectURL(file);preview.style.display="block";}
+ if(box){box.style.display="block";box.value="";}
+ if(status)status.innerText="Running OCR locally in the browser...";
+ let detected="";
+ try{
+   if(window.Tesseract&&Tesseract.recognize){
+     const r=await Tesseract.recognize(file,"eng",{logger:m=>{if(status&&m.status){status.innerText="OCR: "+m.status+(m.progress?" "+Math.round(m.progress*100)+"%":"");}}});
+     detected=r&&r.data&&r.data.text?r.data.text:"";
+   }
+ }catch(e){detected="";}
+ if(detected.trim()){
+   const best=buildBestAddressFromOCR(detected),pc=extractUKPostcodeFromText(detected);
+   if(box)box.value=best;
+   applyScannedAddress(best); showOcrActionButtons();
+   if(status)status.innerText=pc?"OCR complete. Postcode detected: "+pc+". Check address, then tap a map button.":"OCR complete. Check/correct address, then tap a map button.";
+   return;
+ }
+ const manual=prompt("OCR could not read the address clearly. Type or paste the address/postcode shown in the image:","");
+ if(manual&&manual.trim()){applyScannedAddress(manual.trim()); if(box){box.value=manual.trim();box.style.display="block";} showOcrActionButtons(); if(status)status.innerText="Address added manually. Tap a map button to navigate.";}
+ else if(status)status.innerText="Scan captured. No address added.";
+}
+function useCorrectedOcrText(){
+ const box=document.getElementById("ocrResultText");
+ if(!box||!box.value.trim()){alert("No OCR text to use.");return false;}
+ applyScannedAddress(box.value.trim()); showOcrActionButtons(); return true;
+}
+function useOcrAndOpenApple(){if(useCorrectedOcrText())openAppleMaps();}
+function useOcrAndOpenGoogle(){if(useCorrectedOcrText())openGoogleMaps();}
+function useOcrAndOpenWaze(){if(useCorrectedOcrText())openWaze();}
+function clearScannedAddress(){
+ const ids=["navAddress","scanStatus","scanPreview","addressScanInput","ocrResultText","useOcrTextBtn","ocrNavButtons","useOcrWazeBtn"];
+ const nav=document.getElementById("navAddress"); if(nav)nav.value="";
+ const st=document.getElementById("scanStatus"); if(st)st.innerText="Waiting for scan";
+ const pr=document.getElementById("scanPreview"); if(pr){pr.src="";pr.style.display="none";}
+ const inp=document.getElementById("addressScanInput"); if(inp)inp.value="";
+ const box=document.getElementById("ocrResultText"); if(box){box.value="";box.style.display="none";}
+ const use=document.getElementById("useOcrTextBtn"); if(use)use.style.display="none";
+ const nb=document.getElementById("ocrNavButtons"); if(nb)nb.style.display="none";
+ const wz=document.getElementById("useOcrWazeBtn"); if(wz)wz.style.display="none";
+}
+
+
+let hmrcJourneys = [];
+
+function loadHmrcJourneys(){
+  try{
+    hmrcJourneys = JSON.parse(localStorage.getItem("shiftpilot_hmrc_journeys") || "[]");
+  }catch(e){
+    hmrcJourneys = [];
+  }
+  renderHmrcJourneys();
+}
+
+function saveHmrcJourney(){
+  const start = document.getElementById("hmrcStartPostcode").value.trim().toUpperCase();
+  const finish = document.getElementById("hmrcFinishPostcode").value.trim().toUpperCase();
+  const miles = parseFloat(document.getElementById("hmrcMiles").value || "0");
+  const purpose = document.getElementById("hmrcPurpose").value.trim() || "Business Journey";
+
+  if(!start || !finish || !miles){
+    alert("Please complete start postcode, finish postcode and mileage.");
+    return;
+  }
+
+  hmrcJourneys.unshift({
+    start,
+    finish,
+    miles,
+    purpose,
+    date: new Date().toLocaleDateString()
+  });
+
+  localStorage.setItem("shiftpilot_hmrc_journeys", JSON.stringify(hmrcJourneys));
+
+  document.getElementById("hmrcStartPostcode").value = "";
+  document.getElementById("hmrcFinishPostcode").value = "";
+  document.getElementById("hmrcMiles").value = "";
+  document.getElementById("hmrcPurpose").value = "";
+
+  renderHmrcJourneys();
+
+  alert("HMRC mileage journey saved.");
+}
+
+function renderHmrcJourneys(){
+  const list = document.getElementById("hmrcJourneyList");
+  const totalMilesEl = document.getElementById("hmrcTotalMiles");
+  const allowanceEl = document.getElementById("hmrcAllowance");
+
+  if(!list) return;
+
+  if(!hmrcJourneys.length){
+    list.innerHTML = '<p style="color:var(--muted)">No HMRC journeys logged yet.</p>';
+  } else {
+    list.innerHTML = hmrcJourneys.map(j => `
+      <div class="row">
+        <b>${j.start} → ${j.finish}<br><small>${j.date} • ${j.purpose}</small></b>
+        <span>${j.miles.toFixed(1)} mi</span>
+      </div>
+    `).join("");
+  }
+
+  const totalMiles = hmrcJourneys.reduce((a,b)=>a+b.miles,0);
+  const allowance = totalMiles * 0.45;
+
+  if(totalMilesEl) totalMilesEl.innerText = totalMiles.toFixed(1) + " miles";
+  if(allowanceEl) allowanceEl.innerText = "£" + allowance.toFixed(2);
+}
+
+function exportHmrcCsv(){
+  if(!hmrcJourneys.length){
+    alert("No HMRC journey data available.");
+    return;
+  }
+
+  let csv = "Date,Start Postcode,Finish Postcode,Business Miles,Purpose\\n";
+
+  hmrcJourneys.forEach(j => {
+    csv += `"${j.date}","${j.start}","${j.finish}","${j.miles}","${j.purpose}"\\n`;
+  });
+
+  const blob = new Blob([csv], {type:"text/csv"});
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "ShiftPilot_HMRC_Report.csv";
+  a.click();
+
+  URL.revokeObjectURL(url);
+}
+
+window.addEventListener("load", loadHmrcJourneys);
+
+
+let driverProfile = {};
+function loadDriverProfile(){
+  try{ driverProfile = JSON.parse(localStorage.getItem("shiftpilot_driver_profile") || "{}"); }catch(e){ driverProfile = {}; }
+  ["driverName","driverVehicle","driverWorkplace"].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el && driverProfile[id]) el.value=driverProfile[id];
+  });
+}
+function saveDriverProfile(){
+  driverProfile = {
+    driverName: (document.getElementById("driverName")||{}).value || "",
+    driverVehicle: (document.getElementById("driverVehicle")||{}).value || "",
+    driverWorkplace: (document.getElementById("driverWorkplace")||{}).value || ""
+  };
+  localStorage.setItem("shiftpilot_driver_profile", JSON.stringify(driverProfile));
+  alert("Driver profile saved.");
+}
+function getHmrcRate(){ return 0.55; }
+function fillHmrcFromNav(){
+  const nav=document.getElementById("navAddress");
+  const finish=document.getElementById("hmrcFinishPostcode");
+  if(nav && finish && nav.value.trim()) finish.value = nav.value.trim();
+  else alert("No current navigation address found.");
+}
+function fillHmrcFromGps(){
+  const milesInput=document.getElementById("hmrcMiles");
+  if(typeof gpsMiles !== "undefined" && gpsMiles>0 && milesInput) milesInput.value = gpsMiles.toFixed(2);
+  else{
+    const distance=document.getElementById("distance");
+    if(distance && distance.value && milesInput) milesInput.value=distance.value;
+    else alert("No GPS/distance mileage found.");
+  }
+}
+function saveHmrcJourney(){
+  const start = (document.getElementById("hmrcStartPostcode")||{}).value?.trim() || "";
+  const finish = (document.getElementById("hmrcFinishPostcode")||{}).value?.trim() || "";
+  const miles = parseFloat((document.getElementById("hmrcMiles")||{}).value || "0");
+  const purpose = (document.getElementById("hmrcPurpose")||{}).value?.trim() || "Business";
+  if(!finish || !miles){ alert("Please enter at least a finish address/postcode and business miles."); return; }
+  hmrcJourneys.unshift({start:start||"Workplace/Base",finish,miles,purpose,date:new Date().toLocaleDateString("en-GB"),rate:getHmrcRate()});
+  localStorage.setItem("shiftpilot_hmrc_journeys", JSON.stringify(hmrcJourneys));
+  ["hmrcStartPostcode","hmrcFinishPostcode","hmrcMiles","hmrcPurpose"].forEach(id=>{const el=document.getElementById(id); if(el) el.value="";});
+  renderHmrcJourneys();
+  alert("HMRC mileage journey saved.");
+}
+function renderHmrcJourneys(){
+  const list=document.getElementById("hmrcJourneyList");
+  const totalMilesEl=document.getElementById("hmrcTotalMiles");
+  const allowanceEl=document.getElementById("hmrcAllowance");
+  if(!list) return;
+  const rate=getHmrcRate();
+  if(!hmrcJourneys.length) list.innerHTML='<p style="color:var(--muted)">No HMRC journeys logged yet.</p>';
+  else list.innerHTML=hmrcJourneys.slice(0,12).map(j=>`<div class="row"><b>${j.start||"Base"} → ${j.finish}<br><small>${j.date} • ${j.purpose||"Business"}</small></b><span>${Number(j.miles).toFixed(1)} mi<br><small>£${(Number(j.miles)*rate).toFixed(2)}</small></span></div>`).join("");
+  const totalMiles=hmrcJourneys.reduce((a,b)=>a+Number(b.miles||0),0);
+  if(totalMilesEl) totalMilesEl.innerText=totalMiles.toFixed(1)+" miles";
+  if(allowanceEl) allowanceEl.innerText="£"+(totalMiles*rate).toFixed(2);
+}
+function exportHmrcCsv(){
+  if(!hmrcJourneys.length){ alert("No HMRC journey data available."); return; }
+  const rate=getHmrcRate();
+  let csv="Date,From,To,Purpose,Distance,Rate,Amount\n";
+  hmrcJourneys.forEach(j=>{csv += `"${j.date}","${j.start}","${j.finish}","${j.purpose}","${Number(j.miles).toFixed(2)}","£${rate.toFixed(2)}","£${(Number(j.miles)*rate).toFixed(2)}"\n`;});
+  const blob=new Blob([csv],{type:"text/csv"});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a"); a.href=url; a.download="ShiftPilot_HMRC_Mileage_Report.csv"; a.click();
+  URL.revokeObjectURL(url);
+}
+function generateHmrcReport(){
+  if(!hmrcJourneys.length){ alert("No HMRC journey data available."); return; }
+  loadDriverProfile();
+  const rate=getHmrcRate();
+  const totalMiles=hmrcJourneys.reduce((a,b)=>a+Number(b.miles||0),0);
+  const totalAmount=totalMiles*rate;
+  const today=new Date().toLocaleDateString("en-GB");
+  const rows=[...hmrcJourneys].reverse().map(j=>`<tr><td>${j.date}</td><td>${j.start||"Workplace/Base"}</td><td>${j.finish}</td><td>${j.purpose||"Business"}</td><td>${Number(j.miles).toFixed(2)} mi</td><td>£${rate.toFixed(2)}</td><td>£${(Number(j.miles)*rate).toFixed(2)}</td></tr>`).join("");
+  const content=`<div style="display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap"><div><h1 style="margin:0">ShiftPilot Mileage Report</h1><p style="margin:4px 0;color:#6f84a0">Generated ${today}</p></div><div style="text-align:right"><b>${driverProfile.driverName||"Driver name not set"}</b><br>${driverProfile.driverVehicle||"Vehicle not set"}<br>${driverProfile.driverWorkplace||"Workplace/Base not set"}</div></div><h2>Summary</h2><div class="hmrc-report-summary"><div><b>Type</b><br>Business</div><div><b>Total Distance</b><br>${totalMiles.toFixed(2)} mi</div><div><b>Estimated Allowance</b><br>£${totalAmount.toFixed(2)}</div></div><p><b>Rate:</b> £${rate.toFixed(2)} per mile. Please confirm current HMRC mileage rules with HMRC or your accountant.</p><h2>Journey Log</h2><table class="hmrc-report-table"><thead><tr><th>Date</th><th>From</th><th>To</th><th>Purpose</th><th>Distance</th><th>Rate</th><th>Amount</th></tr></thead><tbody>${rows}</tbody></table>`;
+  const box=document.getElementById("hmrcReportContent"),modal=document.getElementById("hmrcReportModal");
+  if(box) box.innerHTML=content;
+  if(modal) modal.style.display="flex";
+}
+function closeHmrcReport(){const modal=document.getElementById("hmrcReportModal"); if(modal) modal.style.display="none";}
+window.addEventListener("load", loadDriverProfile);
+
+
+function normaliseOcrTextForPostcode(text){
+  return String(text||"").toUpperCase().replace(/[|]/g,"I").replace(/[’‘`]/g,"'").replace(/\s+/g," ").trim();
+}
+function extractUKPostcodeFromText(text){
+  const t=normaliseOcrTextForPostcode(text);
+  const m=t.match(/\b([A-Z]{1,2}[0-9][A-Z0-9]?)\s*([0-9][A-Z]{2})\b/);
+  if(m) return (m[1]+" "+m[2]).trim();
+  const m2=t.match(/\b([A-Z]{1,2})\s*([0-9])\s*([A-Z0-9]?)\s*([0-9])\s*([A-Z])\s*([A-Z])\b/);
+  if(m2) return (m2[1]+m2[2]+(m2[3]||"")+" "+m2[4]+m2[5]+m2[6]).trim();
+  return "";
+}
+function scoreAddressLine(line){
+  const u=String(line||"").toUpperCase();
+  let s=0;
+  if(/\b\d{1,4}\b/.test(u)) s+=4;
+  if(/\b(CLOSE|ROAD|STREET|LANE|AVENUE|DRIVE|WAY|GARDENS|GROVE|PLACE|CRESCENT|COURT|MEWS|TERRACE|HILL|PARK|ROW|RISE|VIEW|WALK|CROFT|GREEN|WOOD|TREE)\b/.test(u)) s+=9;
+  if(/[A-Z]{1,2}[0-9][A-Z0-9]?\s*[0-9][A-Z]{2}/.test(u)) s+=6;
+  if(/\b(ORDER|TOTAL|PAID|CARD|CASH|SAUCE|PIZZA|DELIVERY|COLLECT|RECEIPT|NONE|SUMMARY|PHONE|TEL)\b/.test(u)) s-=8;
+  if(/\d{1,2}[:.]\d{2}/.test(u)) s-=5;
+  if(u.length<3) s-=4;
+  return s;
+}
+function buildBestAddressFromOCR(text){
+  const raw=String(text||"").replace(/\r/g,"\n").replace(/[|_~]/g," ");
+  const postcode=extractUKPostcodeFromText(raw);
+  let lines=raw.split(/\n+/).map(l=>l.replace(/\s+/g," ").trim()).filter(Boolean);
+  const expanded=[];
+  lines.forEach(l=>{
+    expanded.push(l);
+    const m=l.match(/(\d{1,4}\s+[A-Z][A-Z\s']{2,}\s+(?:CLOSE|ROAD|STREET|LANE|AVENUE|DRIVE|WAY|GARDENS|GROVE|PLACE|CRESCENT|COURT|MEWS|TERRACE|HILL|PARK|ROW|RISE|VIEW|WALK|CROFT|GREEN|WOOD|TREE))/i);
+    if(m) expanded.push(m[1]);
+  });
+  lines=expanded;
+  const scored=lines.map(line=>({line,score:scoreAddressLine(line)})).sort((a,b)=>b.score-a.score);
+  let street=scored.length&&scored[0].score>0?scored[0].line:"";
+  const streetWords="CLOSE|ROAD|STREET|LANE|AVENUE|DRIVE|WAY|GARDENS|GROVE|PLACE|CRESCENT|COURT|MEWS|TERRACE|HILL|PARK|ROW|RISE|VIEW|WALK|CROFT|GREEN|WOOD|TREE";
+  if(street){
+    const re=new RegExp("(\\d{1,4}\\s+[A-Z][A-Z\\s']{2,}\\s+(?:"+streetWords+"))","gi");
+    const matches=[...street.matchAll(re)];
+    if(matches.length) street=matches[matches.length-1][1].trim();
+  }
+  let town="";
+  if(postcode){
+    const pc=postcode.replace(/\s/g,"");
+    const pcLine=lines.find(l=>l.toUpperCase().replace(/\s/g,"").includes(pc));
+    if(pcLine) town=pcLine.replace(new RegExp(pc,"i"),postcode).replace(postcode,"").replace(/\b(UK|UNITED KINGDOM)\b/ig,"").replace(/[,]+/g," ").replace(/\s+/g," ").trim();
+  }
+  let parts=[];
+  if(street) parts.push(street);
+  if(town && (!street || !street.toUpperCase().includes(town.toUpperCase()))) parts.push(town);
+  if(postcode) parts.push(postcode);
+  return parts.join(" ").replace(/\s+/g," ").trim() || raw.replace(/\s+/g," ").trim();
+}
+function canvasToBlob(canvas){return new Promise(resolve=>canvas.toBlob(resolve,"image/png",0.95));}
+async function makeEnhancedOcrImage(file,mode){
+  const bitmap=await createImageBitmap(file);
+  const maxWidth=1800;
+  const scale=Math.min(maxWidth/bitmap.width,1.8);
+  const w=Math.round(bitmap.width*scale),h=Math.round(bitmap.height*scale);
+  const canvas=document.createElement("canvas");
+  canvas.width=w; canvas.height=h;
+  const ctx=canvas.getContext("2d",{willReadFrequently:true});
+  ctx.drawImage(bitmap,0,0,w,h);
+  const img=ctx.getImageData(0,0,w,h),data=img.data;
+  for(let i=0;i<data.length;i+=4){
+    let gray=0.299*data[i]+0.587*data[i+1]+0.114*data[i+2];
+    gray=(gray-128)*1.75+128;
+    if(mode==="postcode") gray=gray>150?255:0;
+    else gray=gray>188?255:Math.max(0,Math.min(255,gray));
+    data[i]=data[i+1]=data[i+2]=gray;
+  }
+  ctx.putImageData(img,0,0);
+  const prev=document.getElementById("ocrCanvasPreview");
+  if(prev){prev.width=w;prev.height=h;prev.style.display="block";prev.getContext("2d").drawImage(canvas,0,0);}
+  return await canvasToBlob(canvas);
+}
+async function runTesseractOnImage(source,status,label){
+  if(!window.Tesseract||!Tesseract.recognize) return "";
+  const result=await Tesseract.recognize(source,"eng",{
+    logger:m=>{if(status&&m.status){status.innerText=label+": "+m.status+(m.progress?" "+Math.round(m.progress*100)+"%":"");}}
+  });
+  return result&&result.data&&result.data.text?result.data.text:"";
+}
+async function handleAddressScan(event){
+  const file=event.target.files&&event.target.files[0];
+  const status=document.getElementById("scanStatus"),preview=document.getElementById("scanPreview"),box=document.getElementById("ocrResultText");
+  const mode=(document.getElementById("ocrModeSelect")||{}).value||"enhanced";
+  if(!file){if(status)status.innerText="No image selected";return;}
+  if(preview){preview.src=URL.createObjectURL(file);preview.style.display="block";}
+  if(box){box.style.display="block";box.value="";}
+  ["useOcrTextBtn","ocrNavButtons","useOcrWazeBtn"].forEach(id=>{const el=document.getElementById(id);if(el)el.style.display="none";});
+  if(mode==="manual"){
+    const manual=prompt("Type or paste the address/postcode shown on the slip:","");
+    if(manual&&manual.trim()){applyScannedAddress(manual.trim()); if(box)box.value=manual.trim(); showOcrActionButtons(); if(status)status.innerText="Manual address added. Tap a map button to navigate.";}
+    return;
+  }
+  if(status)status.innerText="Preparing enhanced receipt image...";
+  let combined="";
+  try{
+    const enhanced=await makeEnhancedOcrImage(file,mode);
+    combined+=await runTesseractOnImage(enhanced,status,"Enhanced OCR");
+    if(!extractUKPostcodeFromText(combined)) combined+="\n"+await runTesseractOnImage(file,status,"Second OCR pass");
+  }catch(e){console.log(e);}
+  if(combined.trim()){
+    const best=buildBestAddressFromOCR(combined),pc=extractUKPostcodeFromText(combined);
+    if(box){box.value=best;box.style.display="block";}
+    applyScannedAddress(best); showOcrActionButtons();
+    if(status)status.innerText=pc?"OCR complete. Postcode detected: "+pc+". Check house number, then choose a map.":"OCR complete. Check/correct address, then choose a map.";
+    return;
+  }
+  const manual=prompt("OCR still could not read the slip clearly. Type or paste the address/postcode:","");
+  if(manual&&manual.trim()){applyScannedAddress(manual.trim()); if(box)box.value=manual.trim(); showOcrActionButtons(); if(status)status.innerText="Address added manually. Tap a map button to navigate.";}
+  else if(status)status.innerText="OCR failed. Try retaking closer to the address block only.";
+}
+function useCorrectedOcrText(){
+  const box=document.getElementById("ocrResultText");
+  if(!box||!box.value.trim()){alert("No OCR text to use.");return false;}
+  applyScannedAddress(box.value.trim()); showOcrActionButtons(); return true;
+}
+function clearScannedAddress(){
+  const nav=document.getElementById("navAddress"),status=document.getElementById("scanStatus"),preview=document.getElementById("scanPreview"),input=document.getElementById("addressScanInput"),box=document.getElementById("ocrResultText"),canvas=document.getElementById("ocrCanvasPreview");
+  if(nav)nav.value=""; if(status)status.innerText="Waiting for scan"; if(preview){preview.src="";preview.style.display="none";} if(canvas)canvas.style.display="none"; if(input)input.value=""; if(box){box.value="";box.style.display="none";}
+  ["useOcrTextBtn","ocrNavButtons","useOcrWazeBtn"].forEach(id=>{const el=document.getElementById(id);if(el)el.style.display="none";});
+}
+
+</script>
+</head>
+<body>
+<div id="onboarding" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:999999;align-items:center;justify-content:center;padding:20px">
+<div style="background:white;max-width:420px;width:100%;border-radius:28px;padding:24px;box-shadow:0 20px 60px rgba(0,0,0,.35)">
+<h2 style="margin-top:0">Welcome to ShiftPilot</h2>
+<p style="color:#6f84a0">Let's configure your app.</p>
+
+<div style="margin:12px 0">
+<label><b>Delivery Platform</b></label>
+<select id="onboardTheme" style="margin-top:6px">
+<option value="default">ShiftPilot Default</option>
+<option value="dominos">Domino's</option>
+<option value="ubereats">Uber Eats</option>
+<option value="deliveroo">Deliveroo</option>
+<option value="justeat">Just Eat</option>
+</select>
+</div>
+
+<div style="margin:12px 0">
+<label><b>Default MPG</b></label>
+<input id="onboardMPG" inputmode="decimal">
+</div>
+
+<div style="margin:12px 0">
+<label><b>Default Fuel Price</b></label>
+<input id="onboardFuel" inputmode="decimal">
+</div>
+
+<button class="btn blue" onclick="completeOnboarding()">Complete Setup</button>
+</div>
+</div>
+
+<div id="splash"><img src="splash-screen.png" alt="ShiftPilot Splash Screen"></div>
+
+
+<div id="updatePrompt">
+  <b>Update Available</b>
+  <p>A newer version of ShiftPilot is ready. Update now to load the latest improvements.</p>
+  <div class="update-actions">
+    <button class="btn grey" onclick="dismissUpdatePrompt()">Later</button>
+    <button class="btn blue" onclick="applyAppUpdate()">Update Now</button>
+  </div>
+</div>
+
+<div class="app">
+<div class="header"><h1>ShiftPilot</h1><p>Driver Earnings Tracker · Created by A. Sinfield</p></div>
+<div class="content"><div id="runningBanner" class="hero profit" style="font-size:22px;margin-bottom:12px">Today's Profit £0.00</div>
+
+<div class="tabs">
+<button class="tab active" onclick="showTab('calc',this)">Calculator</button>
+<button class="tab" onclick="showTab('shift',this)">Shift</button>
+<button class="tab" onclick="showTab('nav',this)">Nav</button><button class="tab" onclick="showTab('dash',this)">Dashboard</button>
+<button class="tab" onclick="showTab('reports',this)">Reports</button><button class="tab" onclick="showTab('settings',this)">Settings</button>
+</div>
+
+<div id="calc" class="panel active">
+<div class="card">
+<div class="field"><label>Order Number<small>manual entry</small></label><input id="order"></div>
+
+<div class="field">
+<label>Delivery Type</label>
+<div style="display:flex;gap:8px">
+<button type="button" class="btn blue" style="margin-top:0;padding:10px" onclick="setType('inside')">INSIDE</button>
+<button type="button" class="btn green" style="margin-top:0;padding:10px" onclick="setType('outside')">OUTSIDE</button>
+</div>
+<input type="hidden" id="type" value="inside">
+</div>
+
+<div class="field"><label>Distance<small>miles</small></label><input id="distance" inputmode="decimal"></div>
+<div class="card no-print" style="margin-bottom:12px">
+<b>GPS Mileage Assist</b>
+<p class="notice">Optional: start GPS at the beginning of a delivery, then stop it at the end to auto-fill distance. GPS is processed locally on your device and is not uploaded or shared.</p>
+<div class="grid">
+<button class="btn green" onclick="startGPSDelivery()">Start GPS</button>
+<button class="btn red" onclick="stopGPSDelivery()">Stop GPS</button>
+</div>
+<div class="row"><b>GPS Status</b><span id="gpsStatus">Not tracking</span></div>
+<div class="row"><b>GPS Distance</b><span id="gpsDistance">0.00 miles</span></div>
+</div>
+<div class="field"><label>Car MPG</label><input id="mpg" inputmode="decimal"></div>
+
+<div class="field"><label>Fuel Price<small>£ per litre</small></label><input id="price" inputmode="decimal"></div>
+
+<div class="field">
+<label>Vehicle Presets</label>
+<div style="display:flex;gap:8px">
+<button type="button" class="btn grey" style="margin-top:0;padding:10px" onclick="setVehicle(42)">Vehicle 1</button>
+<button type="button" class="btn grey" style="margin-top:0;padding:10px" onclick="setVehicle(55)">Vehicle 2</button>
+</div>
+</div>
+
+<div class="field"><label>Payment Received<small>£</small></label><input id="payment" inputmode="decimal"></div>
+</div>
+<button class="btn blue" onclick="calculate()">Calculate</button>
+<div id="calcResults" style="display:none;margin-top:14px">
+<div class="grid">
+<div class="metric"><h3>Order</h3><div class="value" id="orderOut">--</div></div>
+<div class="metric"><h3>Type</h3><div class="value" id="typeOut">--</div></div>
+<div class="metric"><h3>Fuel Used</h3><div class="value" id="fuelOut">0.00 L</div></div>
+<div class="metric"><h3>Fuel Cost</h3><div class="value" id="costOut">£0.00</div></div>
+<div class="metric"><h3>Cost / Mile</h3><div class="value" id="cpmOut">£0.00</div></div>
+<div class="metric"><h3>Miles</h3><div class="value" id="milesOut">0.0</div></div>
+</div>
+<div id="tripHero" class="hero profit">£0.00</div>
+<button class="btn green" onclick="addTrip()">+ Add Trip To Shift</button>
+</div>
+</div>
+
+<div id="shift" class="panel">
+<div class="card no-print"><p class="notice">Testing Release: data is stored locally on this device/browser. GPS Mileage Assist is optional and GPS data is not uploaded. Export backups periodically during testing.</p></div>
+<div class="card">
+<div class="row"><b>Shift Date</b><span id="shiftDate">--/--/----</span></div>
+<div class="grid"><button class="btn green" onclick="clockIn()">Clock In</button><button class="btn red" onclick="clockOut()">Clock Out & Save Shift</button></div>
+<div class="row"><b>Clock In</b><span id="clockInTime">--:--</span></div>
+<div class="row"><b>Clock Out</b><span id="clockOutTime">--:--</span></div>
+
+<div class="row"><b>Shift Duration</b><span id="duration">0h 0m</span></div>
+
+<div class="grid">
+<button class="btn orange" onclick="pauseShift()">Pause Shift</button>
+<button class="btn blue" onclick="resumeShift()">Resume Shift</button>
+</div>
+
+<div class="row"><b>Total Break Time</b><span id="breakTime">0m</span></div>
+
+</div>
+<div class="card">
+<div class="field"><label>Hourly Rate<small>£</small></label><input id="hourly" inputmode="decimal" oninput="update()"></div>
+<div class="field"><label>Cash Tips<small>£</small></label><input id="cashTips" inputmode="decimal" oninput="update()"></div>
+<div class="field"><label>TiPJAR Tips<small>£</small></label><input id="tipjarTips" inputmode="decimal" oninput="update()"></div>
+</div>
+<div id="summary"></div>
+
+<div class="card">
+<b>Fuel & Shift Notes</b>
+<div class="field"><label>Fuel Spend Today<small>£ added during shift</small></label><input id="fuelSpend" inputmode="decimal" oninput="update()"></div>
+<div class="field"><label>Shift Notes<small>weather, delays, quiet shift etc.</small></label><input id="shiftNotes" oninput="update()"></div>
+</div>
+<div id="shiftHero" class="hero profit">
+£0.00</div>
+</div>
+
+
+<div id="nav" class="panel">
+<div class="card">
+<b>Navigation Assistant</b>
+<p class="notice">Enter a postcode or address, then open it directly in your preferred navigation app. ShiftPilot does not upload or share address lookups.</p>
+<div class="field"><label>Postcode / Address<small>example: BN1 7GS</small></label><input id="navAddress" autocomplete="off" oninput="formatPostcodeLive()"></div>
+<div class="row"><b>Status</b><span id="postcodeStatus">Waiting</span></div>
+<div class="grid">
+<button class="btn blue" onclick="openAppleMaps()">Apple Maps</button>
+<button class="btn green" onclick="openGoogleMaps()">Google Maps</button>
+</div>
+<button class="btn grey" onclick="openWaze()">Open in Waze</button>
+<button class="btn blue" onclick="saveNavLookup()">Save To Recent</button>
+</div>
+
+
+<div class="card">
+<b>Address Scan</b>
+<p class="notice">Use your camera to capture the address block. For best results keep the receipt flat, avoid glare and fill the frame with the address/postcode. This version enhances the image before OCR and prioritises UK postcode extraction.</p>
+
+<input type="file" id="addressScanInput" accept="image/*" capture="environment" style="display:none" onchange="handleAddressScan(event)">
+
+<div class="grid">
+<button class="btn blue" onclick="document.getElementById('addressScanInput').click()">Scan Address</button>
+<button class="btn grey" onclick="clearScannedAddress()">Clear Scan</button>
+</div>
+
+<div class="field"><label>OCR Mode<small>try Enhanced first</small></label><select id="ocrModeSelect"><option value="enhanced">Enhanced Receipt OCR</option><option value="postcode">Postcode Priority</option><option value="manual">Manual Assist</option></select></div><div id="scanStatus" class="notice">Waiting for scan</div><p class="notice">Tip: check the house number and postcode before launching navigation.</p>
+<textarea id="ocrResultText" placeholder="OCR result will appear here for checking/correction" style="display:none;width:100%;min-height:110px;margin-top:12px;border-radius:14px;border:1px solid #cad8ea;padding:12px;font-size:15px"></textarea>
+<button id="useOcrTextBtn" class="btn blue" style="display:none" onclick="useCorrectedOcrText()">Use Address For Navigation</button>
+<div id="ocrNavButtons" class="grid" style="display:none;margin-top:8px">
+<button id="useOcrAppleBtn" class="btn blue" onclick="useOcrAndOpenApple()">Use + Apple Maps</button>
+<button id="useOcrGoogleBtn" class="btn green" onclick="useOcrAndOpenGoogle()">Use + Google Maps</button>
+</div>
+<button id="useOcrWazeBtn" class="btn grey" style="display:none" onclick="useOcrAndOpenWaze()">Use + Waze</button>
+<img id="scanPreview" alt="Address scan preview" style="display:none;width:100%;border-radius:16px;margin-top:12px;border:1px solid #8aa1bd44"><canvas id="ocrCanvasPreview" style="display:none;width:100%;border-radius:16px;margin-top:12px;border:1px solid #8aa1bd44"></canvas><p class="notice">If OCR struggles, retake the photo closer to the address block only or use Manual Assist.</p>
+</div>
+
+<div class="card">
+<b>Recent Navigation Lookups</b>
+<div id="recentNavList"></div>
+</div>
+
+<div class="card">
+<b>Delivery Address Notes</b>
+<p class="notice">Save useful notes such as flats, rear entrance, parking issues, gate codes or difficult access.</p>
+<div class="field"><label>Notes<small>optional</small></label><input id="navNote" autocomplete="off"></div>
+<button class="btn blue" onclick="saveAddressNote()">Save Note For This Address</button>
+<div id="savedAddressNote"></div>
+</div>
+</div>
+
+<div id="dash" class="panel">
+<div class="card">
+<div class="field"><label>Weekly Goal<small>£ target</small></label><input id="weeklyGoal" inputmode="decimal" oninput="update()"></div>
+</div>
+<div id="dashboardCards"></div>
+<div class="card">
+<b>Earnings Overview</b>
+<div id="earningsChart"></div>
+</div>
+<div class="card">
+<b>Top Earnings Sources</b>
+<div id="sourceChart"></div>
+</div>
+<div class="card">
+<b>Fuel Spend & Net Earnings</b>
+<div id="fuelDashboard"></div>
+</div>
+<div class="card">
+<b>Monthly View</b>
+<div id="monthlyDashboard"></div>
+</div>
+<div class="card">
+<b>Best Performing Day</b>
+<div id="bestDayDashboard"></div>
+</div>
+<div class="card">
+<b>Weekly Goal</b>
+<div id="goalBox"></div>
+</div>
+</div>
+
+<div id="reports" class="panel">
+<div class="card"><b>Current Shift Report</b><div id="orders"></div></div>
+<div class="card"><b>Working Week Report</b><p class="notice">Saved shifts are kept on this device. Export as CSV or Print / Save PDF.</p>
+<button class="btn blue" onclick="exportCSV()">Export CSV</button>
+<button class="btn grey" onclick="window.print()">Print / Save PDF</button>
+
+<button class="btn blue" onclick="exportBackup()">Export Backup</button>
+<button class="btn grey" onclick="document.getElementById('restoreFile').click()">Restore Backup</button>
+<input type="file" id="restoreFile" accept=".json" style="display:none" onchange="restoreBackup(event)">
+
+<button class="btn green" onclick="addFuelSpend()">Add Fuel Spend</button>
+<button class="btn blue" onclick="exportTaxCSV()">Export Tax / Mileage CSV</button>
+<button class="btn red" onclick="resetWeek()">Reset Week Report</button>
+
+
+<div id="week"></div></div>
+<div class="card"><b>Recent Trips</b><div id="recentTrips"></div></div>
+</div>
+
+
+<div class="card">
+<b>Performance Intelligence</b>
+<div id="performanceInsights"></div>
+</div>
+
+<div class="card">
+<b>Live Shift Status</b>
+<div id="liveStatus"></div>
+</div>
+
+<div id="settings" class="panel">
+<div class="card">
+<b>Platform Theme</b>
+<div class="field">
+<label>Select Platform</label>
+<select id="platformTheme" onchange="applyTheme()">
+<option value="default">ShiftPilot Default</option>
+<option value="dominos">Domino's Edition</option>
+<option value="ubereats">Uber Eats Edition</option>
+<option value="deliveroo">Deliveroo Edition</option>
+<option value="justeat">Just Eat Edition</option>
+
+</select>
+</div>
+</div>
+
+<div class="card">
+<b>Appearance</b>
+<div class="row"><b>Dark Mode</b><span id="darkModeStatus">Off</span></div>
+<button class="btn grey" onclick="toggleDark()">Toggle Dark Mode</button>
+</div>
+
+<div class="card">
+<b>Vehicle & Fuel Defaults</b>
+<div class="field"><label>Default MPG</label><input id="defaultMPG" inputmode="decimal"></div>
+<div class="field"><label>Default Fuel Price</label><input id="defaultFuel" inputmode="decimal"></div>
+<button class="btn blue" onclick="saveDefaults()">Save Defaults</button>
+</div>
+
+<div class="card">
+<b>Achievements</b>
+<div id="achievementBox"></div>
+</div>
+
+<div class="card">
+<b>Shift Health</b>
+<div id="shiftHealth"></div>
+</div>
+
+
+<div class="card">
+<b>Security & Privacy</b>
+<div class="row"><b>Data Storage</b><span>Local device only</span></div>
+<div class="row"><b>GPS Data</b><span>Processed locally only</span></div>
+<div class="row"><b>Accounts</b><span>No login required</span></div>
+<div class="row"><b>Tracking</b><span>No advertising trackers</span></div>
+<div class="row"><b>Analytics</b><span>No third-party analytics</span></div>
+<div class="row"><b>Payments</b><span>No card details collected</span></div>
+<p class="notice">ShiftPilot stores shift, earnings, mileage and GPS-assisted distance information locally on your own device. Data is not uploaded to a server unless you manually export or share a backup file yourself.</p>
+<button class="btn blue" onclick="showPrivacyInfo()">Show Tester Privacy Summary</button>
+</div>
+
+<div class="card">
+<b>Testing Release Notes</b>
+<div class="row"><b>Status</b><span>Public testing build</span></div>
+<div class="row"><b>Recommendation</b><span>Export backups regularly</span></div>
+<div class="row"><b>GPS Permission</b><span>Optional and user controlled</span></div>
+<p class="notice">During testing, please use Export Backup before clearing browser data, removing the Home Screen app, or changing device.</p>
+</div>
+
+
+<div class="card">
+<b>Updates</b>
+<div class="row"><b>Current Version</b><span>v19 OCR Upgrade</span></div>
+<div class="row"><b>Update System</b><span>Auto-check enabled</span></div>
+<button class="btn blue" onclick="manualCheckForUpdates()">Check For Updates</button>
+<button class="btn grey" onclick="clearAppCachesAndReload()">Force Refresh App</button>
+</div>
+
+<div class="card">
+<b>App Information</b>
+<div class="row"><b>Version</b><span>ShiftPilot v23 OCR Accuracy</span></div><div class="row"><b>Updates</b><span>Auto-check enabled</span></div>
+<div class="row"><b>Platform</b><span>PWA / iPhone / Android Ready</span></div>
+<div class="row"><b>Backup</b><span>Enabled</span></div><div class="row"><b>Privacy Mode</b><span>Local-only</span></div><div class="row"><b>GPS</b><span>Optional / local</span></div><div class="row"><b>GPS Mileage Assist</b><span>Optional</span></div><div class="row"><b>Privacy</b><span>GPS data remains local to your device</span></div><div class="row"><b>Backup Reminder</b><span>Export backups periodically</span></div>
+</div>
+</div>
+
+<div class="card">
+<b>HMRC Mileage Support</b>
+<p class="notice">Track business mileage evidence for tax/self-assessment purposes. Data remains stored locally on your device.</p>
+
+<div class="grid">
+<div class="field">
+<label>Start Postcode</label>
+<input id="hmrcStartPostcode" placeholder="BN1 1AA">
+</div>
+
+<div class="field">
+<label>Finish Postcode</label>
+<input id="hmrcFinishPostcode" placeholder="BN6 8AU">
+</div>
+</div>
+
+<div class="grid">
+<div class="field">
+<label>Business Miles</label>
+<input id="hmrcMiles" type="number" step="0.1" placeholder="12.5">
+</div>
+
+<div class="field">
+<label>Journey Purpose</label>
+<input id="hmrcPurpose" placeholder="Delivery Shift">
+</div>
+</div>
+
+<button class="btn blue" onclick="saveHmrcJourney()">Save Journey</button>
+
+<div class="row"><b>Total HMRC Miles</b><span id="hmrcTotalMiles">0 miles</span></div>
+<div class="row"><b>Estimated Allowance</b><span id="hmrcAllowance">£0.00</span></div>
+
+<button class="btn green" onclick="exportHmrcCsv()">Export HMRC CSV</button>
+
+<div id="hmrcJourneyList"></div>
+</div>
+
+
+<div class="card">
+<b>Driver Profile</b>
+<p class="notice">Used on HMRC mileage reports. Stored locally on this device only.</p>
+<div class="field"><label>Your Name</label><input id="driverName" placeholder="Your name"></div>
+<div class="field"><label>Vehicle</label><input id="driverVehicle" placeholder="Vehicle / registration"></div>
+<div class="field"><label>Workplace / Base</label><input id="driverWorkplace" placeholder="Workplace or delivery base"></div>
+<button class="btn blue" onclick="saveDriverProfile()">Save Driver Profile</button>
+</div>
+
+
+<div class="card">
+<b>HMRC Mileage Report</b>
+<p class="notice">Simple mileage logging for self-employed drivers. Add journeys quickly, then export CSV or generate a monthly-style report.</p>
+<div class="grid">
+<div class="field"><label>From</label><input id="hmrcStartPostcode" placeholder="Start address/postcode"></div>
+<div class="field"><label>To</label><input id="hmrcFinishPostcode" placeholder="Finish address/postcode"></div>
+</div>
+<div class="grid">
+<div class="field"><label>Business Miles</label><input id="hmrcMiles" type="number" step="0.1" placeholder="0.0"></div>
+<div class="field"><label>Purpose</label><input id="hmrcPurpose" placeholder="Delivery / Business"></div>
+</div>
+<div class="grid">
+<button class="btn grey" onclick="fillHmrcFromNav()">Use Current Nav Address</button>
+<button class="btn grey" onclick="fillHmrcFromGps()">Use GPS Miles</button>
+</div>
+<button class="btn blue" onclick="saveHmrcJourney()">Save Journey</button>
+<div class="row"><b>Total Business Miles</b><span id="hmrcTotalMiles">0 miles</span></div>
+<div class="row"><b>Estimated Allowance</b><span id="hmrcAllowance">£0.00</span></div>
+<div class="grid">
+<button class="btn green" onclick="exportHmrcCsv()">Export CSV</button>
+<button class="btn blue" onclick="generateHmrcReport()">Generate HMRC Report</button>
+</div>
+<div id="hmrcJourneyList"></div>
+</div>
+
+<div class="footer">ShiftPilot v23 OCR Accuracy • © 2026 Anthony Sinfield | AJInnovative Solutions</div>
+</div></div>
+
+<script>
+let lastTrip=null,inside=0,outside=0,trueDelivery=0,totalMiles=0,clockInDate=null,clockOutDate=null,shiftDate="",orderReport=[],weekReport=[];
+function money(v){return "£"+Number(v).toFixed(2)}
+function num(id){let v=document.getElementById(id).value;return v?Number(v.trim().replace(/,/g,".")):0}
+function time(d){return d?d.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}):"--:--"}
+function date(d){return d?d.toLocaleDateString([],{day:"2-digit",month:"2-digit",year:"numeric"}):"--/--/----"}
+function hrs(){if(!clockInDate)return 0;let end=clockOutDate||new Date(),h=(end-clockInDate)/3600000;return h>0?h:0}
+function dur(h){let m=Math.floor(h*60);return Math.floor(m/60)+"h "+(m%60)+"m"}
+function showTab(id,btn){document.querySelectorAll(".panel").forEach(p=>p.classList.remove("active"));document.getElementById(id).classList.add("active");document.querySelectorAll(".tab").forEach(b=>b.classList.remove("active"));btn.classList.add("active");update()}
+function toggleDark(){document.body.classList.toggle("dark");localStorage.setItem("shiftPilotDark",document.body.classList.contains("dark")?"1":"0");updateDarkModeStatus()}
+function save(){localStorage.setItem("shiftPilotDashboardV6",JSON.stringify({lastTrip,inside,outside,trueDelivery,totalMiles,clockInDate:clockInDate?clockInDate.toISOString():null,clockOutDate:clockOutDate?clockOutDate.toISOString():null,shiftDate,orderReport,weekReport,hourly:hourly.value,cashTips:cashTips.value,tipjarTips:tipjarTips.value,weeklyGoal:weeklyGoal.value}))}
+function load(){if(localStorage.getItem("shiftPilotDark")==="1")document.body.classList.add("dark");let s=localStorage.getItem("shiftPilotDashboardV6");if(!s)return;try{let x=JSON.parse(s);lastTrip=x.lastTrip??null;inside=+x.inside||0;outside=+x.outside||0;trueDelivery=+x.trueDelivery||0;totalMiles=+x.totalMiles||0;clockInDate=x.clockInDate?new Date(x.clockInDate):null;clockOutDate=x.clockOutDate?new Date(x.clockOutDate):null;shiftDate=x.shiftDate||"";orderReport=Array.isArray(x.orderReport)?x.orderReport:[];weekReport=Array.isArray(x.weekReport)?x.weekReport:[];hourly.value=x.hourly||"";cashTips.value=x.cashTips||"";tipjarTips.value=x.tipjarTips||"";weeklyGoal.value=x.weeklyGoal||""}catch(e){}}
+function totals(){let hours=hrs(),cash=num("cashTips"),tipjar=num("tipjarTips"),tips=cash+tipjar,rate=num("hourly"),wages=hours*rate,total=trueDelivery+wages+tips,effective=hours?total/hours:0,ppm=totalMiles?total/totalMiles:0;return{date:shiftDate||date(new Date()),inside,outside,deliveries:inside+outside,totalMiles,trueDelivery,cash,tipjar,tips,rate,hours,wages,total,effective,ppm}}
+function weekTotals(){let w={total:0,del:0,hours:0,miles:0,inside:0,outside:0,trueDelivery:0,wages:0,cash:0,tipjar:0,tips:0};weekReport.forEach(d=>{w.total+=d.total;w.del+=d.deliveries;w.hours+=d.hours;w.miles+=d.totalMiles;w.inside+=d.inside;w.outside+=d.outside;w.trueDelivery+=d.trueDelivery;w.wages+=d.wages;w.cash+=d.cash;w.tipjar+=d.tipjar;w.tips+=d.tips});w.eff=w.hours?w.total/w.hours:0;w.ppm=w.miles?w.total/w.miles:0;return w}
+function update(){let t=totals();document.getElementById("shiftDate").innerText=shiftDate||"--/--/----";clockInTime.innerText=time(clockInDate);clockOutTime.innerText=time(clockOutDate);duration.innerText=dur(t.hours);summary.innerHTML='<div class="row"><b>Total Deliveries</b><span>'+t.deliveries+'</span></div><div class="row"><b>Inside / Outside</b><span>'+inside+' / '+outside+'</span></div><div class="row"><b>Total Mileage</b><span>'+t.totalMiles.toFixed(1)+' miles</span></div><div class="row"><b>True Delivery Earnings</b><span class="'+(t.trueDelivery>=0?'positive':'negative')+'">'+money(t.trueDelivery)+'</span></div><div class="row"><b>Base Wages</b><span>'+money(t.wages)+'</span></div><div class="row"><b>Cash Tips</b><span>'+money(t.cash)+'</span></div><div class="row"><b>TiPJAR Tips</b><span>'+money(t.tipjar)+'</span></div><div class="row"><b>Total Tips</b><span>'+money(t.tips)+'</span></div><div class="row"><b>Profit Per Mile</b><span>'+money(t.ppm)+'/mile</span></div><div class="row"><b>Effective Hourly</b><span>'+money(t.effective)+'/hr</span></div>';orders.innerHTML=renderOrders(orderReport);shiftHero.className="hero "+(t.total>=0?'profit':'loss');shiftHero.innerText=(t.total>=0?'Profit ':'Loss ')+money(Math.abs(t.total));renderWeek();renderDashboard();save()}
+function renderOrders(arr){return arr.length?arr.map(o=>'<div class="row"><b>Order '+o.order+'<br><small>'+o.type+' · '+o.miles.toFixed(1)+' miles</small></b><span class="'+(o.result>=0?'positive':'negative')+'">'+(o.result>=0?'Profit ':'Loss ')+money(Math.abs(o.result))+'</span></div>').join(""):'<p style="color:var(--muted)">No orders added yet.</p>'}
+function calculate(){let order=document.getElementById("order").value.trim(),type=document.getElementById("type").value,distance=num("distance"),mpg=num("mpg"),price=num("price"),payment=num("payment");if(!order){alert("Enter order number");return}if(!distance||!mpg||!price||payment<0){alert("Enter valid numbers");return}if(price>10){alert("Fuel price looks too high. Use 1.44 not 144.4");return}let litres=(distance/mpg)*4.55,cost=litres*price,cpm=cost/distance,result=payment-cost;lastTrip={order,type,miles:distance,result};calcResults.style.display="block";orderOut.innerText=order;typeOut.innerText=type==="inside"?"Inside":"Outside";fuelOut.innerText=litres.toFixed(2)+" L";costOut.innerText=money(cost);cpmOut.innerText=money(cpm);milesOut.innerText=distance.toFixed(1);tripHero.className="hero "+(result>=0?'profit':'loss');tripHero.innerText=(result>=0?'Profit ':'Loss ')+money(Math.abs(result));save()}
+function addTrip(){if(!lastTrip){alert("Calculate a delivery first");return}trueDelivery+=lastTrip.result;totalMiles+=lastTrip.miles;if(lastTrip.type==="inside")inside++;else outside++;orderReport.push(lastTrip);lastTrip=null;["order","distance","payment"].forEach(id=>document.getElementById(id).value="");update();alert("Trip added to shift")}
+function clockIn(){clockInDate=new Date();clockOutDate=null;shiftDate=date(clockInDate);update()}
+function clockOut(){if(!clockInDate){alert("Clock in first");return}clockOutDate=new Date();update();saveShiftAndClear()}
+function saveShiftAndClear(){let t=totals();weekReport.push({...t,orders:[...orderReport]});inside=0;outside=0;trueDelivery=0;totalMiles=0;clockInDate=null;clockOutDate=null;shiftDate="";orderReport=[];lastTrip=null;["hourly","cashTips","tipjarTips","order","distance","mpg","price","payment"].forEach(id=>document.getElementById(id).value="");calcResults.style.display="none";update();alert("Shift saved to working week report and current shift cleared.")}
+function renderWeek(){if(!weekReport.length){week.innerHTML='<p style="color:var(--muted)">Your completed shifts will appear here.</p>';return}let total=0,del=0,hours=0,miles=0;week.innerHTML=weekReport.map((d,i)=>{total+=d.total;del+=d.deliveries;hours+=d.hours;miles+=d.totalMiles;return '<div class="row"><b>Day '+(i+1)+' - '+d.date+'<br><small>'+d.deliveries+' deliveries · '+d.totalMiles.toFixed(1)+' miles · '+d.hours.toFixed(2)+' hrs</small></b><span class="'+(d.total>=0?'positive':'negative')+'">'+money(d.total)+'</span></div>'}).join("")+'<div class="row"><b>Week Total<br><small>'+del+' deliveries · '+miles.toFixed(1)+' miles · '+hours.toFixed(2)+' hrs</small></b><span class="'+(total>=0?'positive':'negative')+'">'+money(total)+'</span></div>'}
+function renderDashboard(){let w=weekTotals();dashboardCards.innerHTML='<div class="grid"><div class="metric"><h3>Total Earnings</h3><div class="value">'+money(w.total)+'</div></div><div class="metric"><h3>Total Trips</h3><div class="value">'+w.del+'</div></div><div class="metric"><h3>Active Hours</h3><div class="value">'+w.hours.toFixed(1)+'</div></div><div class="metric"><h3>Hourly Rate</h3><div class="value">'+money(w.eff)+'/hr</div></div><div class="metric"><h3>Total Mileage</h3><div class="value">'+w.miles.toFixed(1)+'</div></div><div class="metric"><h3>Profit / Mile</h3><div class="value">'+money(w.ppm)+'</div></div></div>';renderEarningsChart();renderSources(w);renderGoal(w);renderRecent()}
+function renderEarningsChart(){if(!weekReport.length){earningsChart.innerHTML='<p style="color:var(--muted)">Your completed shifts will appear here.</p>';return}let max=Math.max(...weekReport.map(d=>Math.abs(d.total)),1);earningsChart.innerHTML=weekReport.map((d,i)=>'<div class="chart-row"><div class="chart-label">Day '+(i+1)+'</div><div class="chart-track"><div class="chart-fill" style="width:'+Math.max(3,Math.abs(d.total)/max*100)+'%"></div></div><div class="'+(d.total>=0?'positive':'negative')+'" style="font-weight:900;text-align:right">'+money(d.total)+'</div></div>').join("")}
+function renderSources(w){let sources=[["Delivery",w.trueDelivery],["Wages",w.wages],["Cash Tips",w.cash],["TiPJAR",w.tipjar]];let max=Math.max(...sources.map(s=>Math.abs(s[1])),1);sourceChart.innerHTML=sources.map(s=>'<div class="source-bar"><b style="font-size:12px">'+s[0]+'</b><div class="chart-track"><div class="chart-fill" style="width:'+Math.max(3,Math.abs(s[1])/max*100)+'%"></div></div><span class="'+(s[1]>=0?'positive':'negative')+'" style="font-weight:900;text-align:right">'+money(s[1])+'</span></div>').join("")}
+function renderGoal(w){let goal=num("weeklyGoal"),pct=goal?w.total/goal*100:0;goalBox.innerHTML='<div class="row"><b>Target</b><span>'+money(goal)+'</span></div><div class="row"><b>Achieved</b><span>'+money(w.total)+'</span></div><div class="goal-wrap"><div class="goal-fill" style="width:'+Math.max(0,Math.min(100,pct))+'%"></div></div><p class="notice">'+(goal?Math.round(pct)+'% of weekly target achieved':'Enter a weekly goal above to track progress.')+'</p>'}
+function renderRecent(){let trips=[];weekReport.forEach(d=>(d.orders||[]).forEach(o=>trips.push({...o,date:d.date})));trips=trips.slice(-8).reverse();recentTrips.innerHTML=trips.length?trips.map(o=>'<div class="row"><b>'+o.date+'<br><small>Order '+o.order+' · '+o.type+' · '+o.miles.toFixed(1)+' miles</small></b><span class="'+(o.result>=0?'positive':'negative')+'">'+money(o.result)+'</span></div>').join(""):'<p style="color:var(--muted)">Recent completed deliveries will appear here.</p>'}
+function exportCSV(){let rows=[["Date","Inside","Outside","Deliveries","Mileage","True Delivery Earnings","Hours","Hourly Rate","Base Wages","Cash Tips","TiPJAR Tips","Total Tips","Shift Total","Effective Hourly","Profit Per Mile"]];weekReport.forEach(d=>rows.push([d.date,d.inside,d.outside,d.deliveries,d.totalMiles.toFixed(2),d.trueDelivery.toFixed(2),d.hours.toFixed(2),d.rate.toFixed(2),d.wages.toFixed(2),d.cash.toFixed(2),d.tipjar.toFixed(2),d.tips.toFixed(2),d.total.toFixed(2),d.effective.toFixed(2),d.ppm.toFixed(2)]));let csv=rows.map(r=>r.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(",")).join("\\n");let blob=new Blob([csv],{type:"text/csv"}),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download="shiftpilot-working-week-report.csv";a.click();URL.revokeObjectURL(url)}
+function resetWeek(){if(confirm("Clear the saved working week report?")){weekReport=[];update()}}
+window.addEventListener("load",()=>setTimeout(()=>{let s=document.getElementById("splash");s.style.opacity="0";setTimeout(()=>s.style.display="none",600)},2000));
+
+load();update();setInterval(update,60000)
+
+let pauseStart=null,totalBreakMs=0;
+
+function setType(t){
+document.getElementById('type').value=t;
+}
+
+function setVehicle(mpg){
+document.getElementById('mpg').value=mpg;
+localStorage.setItem('shiftpilot_last_mpg', mpg);
+}
+
+function pauseShift(){
+if(!clockInDate || pauseStart) return;
+pauseStart=new Date();
+alert('Shift paused');
+}
+
+function resumeShift(){
+if(!pauseStart) return;
+totalBreakMs += (new Date()-pauseStart);
+pauseStart=null;
+update();
+alert('Shift resumed');
+}
+
+function savePersistentFields(){
+localStorage.setItem('shiftpilot_last_mpg', document.getElementById('mpg').value);
+localStorage.setItem('shiftpilot_last_price', document.getElementById('price').value);
+}
+
+window.addEventListener('load',()=>{
+const savedMPG=localStorage.getItem('shiftpilot_last_mpg');
+const savedPrice=localStorage.getItem('shiftpilot_last_price');
+if(savedMPG) document.getElementById('mpg').value=savedMPG;
+if(savedPrice) document.getElementById('price').value=savedPrice;
+});
+
+const oldCalc = calculate;
+calculate = function(){
+savePersistentFields();
+oldCalc();
+}
+
+const oldUpdate = update;
+update = function(){
+oldUpdate();
+const currentTotal = trueDelivery + Number(document.getElementById('cashTips').value||0) + Number(document.getElementById('tipjarTips').value||0);
+const banner=document.getElementById('runningBanner');
+if(banner){banner.innerHTML="Today's Profit " + money(currentTotal);}
+const bt=document.getElementById('breakTime');
+if(bt){bt.innerText=Math.floor(totalBreakMs/60000)+'m';}
+}
+
+
+function exportBackup(){
+const backup={
+version:'ShiftPilot V8',
+timestamp:new Date().toISOString(),
+localStorage:{}
+};
+for(let i=0;i<localStorage.length;i++){
+const key=localStorage.key(i);
+if(key && key.toLowerCase().includes('shiftpilot')){
+backup.localStorage[key]=localStorage.getItem(key);
+}
+}
+const blob=new Blob([JSON.stringify(backup,null,2)],{type:'application/json'});
+const url=URL.createObjectURL(blob);
+const a=document.createElement('a');
+a.href=url;
+a.download='shiftpilot-backup-'+new Date().toISOString().slice(0,10)+'.json';
+a.click();
+URL.revokeObjectURL(url);
+alert('Backup exported successfully');
+}
+
+function restoreBackup(event){
+const file=event.target.files[0];
+if(!file) return;
+const reader=new FileReader();
+reader.onload=function(e){
+try{
+const backup=JSON.parse(e.target.result);
+if(!backup.localStorage){
+alert('Invalid backup file');
+return;
+}
+Object.keys(backup.localStorage).forEach(key=>{
+localStorage.setItem(key, backup.localStorage[key]);
+});
+alert('Backup restored successfully. App will now reload.');
+location.reload();
+}catch(err){
+alert('Unable to restore backup file');
+}
+};
+reader.readAsText(file);
+}
+
+
+let fuelSpendTotal = 0;
+
+function addFuelSpend(){
+  const amount = Number(prompt("Enter fuel spend amount (£):", "0"));
+  if(!isFinite(amount) || amount <= 0) return;
+  fuelSpendTotal += amount;
+  localStorage.setItem("shiftPilotFuelSpendTotal", fuelSpendTotal);
+  update();
+  alert("Fuel spend added.");
+}
+
+function commercialExtraSave(){
+  localStorage.setItem("shiftPilotFuelSpendTotal", fuelSpendTotal);
+  const fs=document.getElementById("fuelSpend");
+  const sn=document.getElementById("shiftNotes");
+  if(fs) localStorage.setItem("shiftPilotFuelSpendToday", fs.value || "");
+  if(sn) localStorage.setItem("shiftPilotShiftNotes", sn.value || "");
+}
+
+function commercialExtraLoad(){
+  fuelSpendTotal = Number(localStorage.getItem("shiftPilotFuelSpendTotal") || 0);
+  setTimeout(()=>{
+    const fs=document.getElementById("fuelSpend");
+    const sn=document.getElementById("shiftNotes");
+    if(fs) fs.value = localStorage.getItem("shiftPilotFuelSpendToday") || "";
+    if(sn) sn.value = localStorage.getItem("shiftPilotShiftNotes") || "";
+    update();
+  },100);
+}
+
+function commercialExtraDashboard(){
+  const w = typeof weekTotals === "function" ? weekTotals() : {total:0,miles:0,hours:0,del:0};
+  const todayFuel = Number(document.getElementById("fuelSpend")?.value || 0);
+  const totalFuel = fuelSpendTotal + todayFuel;
+  const netAfterFuel = w.total - totalFuel;
+
+  const fuelEl = document.getElementById("fuelDashboard");
+  if(fuelEl){
+    fuelEl.innerHTML =
+      '<div class="row"><b>Total Fuel Spend Logged</b><span>'+money(totalFuel)+'</span></div>'+
+      '<div class="row"><b>Net After Fuel</b><span class="'+(netAfterFuel>=0?'positive':'negative')+'">'+money(netAfterFuel)+'</span></div>'+
+      '<div class="row"><b>Fuel Cost / Mile</b><span>'+(w.miles?money(totalFuel/w.miles):money(0))+'/mile</span></div>';
+  }
+
+  const monthEl = document.getElementById("monthlyDashboard");
+  if(monthEl){
+    const now = new Date();
+    const month = now.toLocaleString([], {month:"long", year:"numeric"});
+    monthEl.innerHTML =
+      '<div class="row"><b>'+month+'</b><span>'+money(w.total)+'</span></div>'+
+      '<div class="row"><b>Monthly Mileage</b><span>'+Number(w.miles||0).toFixed(1)+' miles</span></div>'+
+      '<div class="row"><b>Monthly Deliveries</b><span>'+Number(w.del||0)+'</span></div>';
+  }
+
+  const bestEl = document.getElementById("bestDayDashboard");
+  if(bestEl){
+    if(!weekReport || !weekReport.length){
+      bestEl.innerHTML='<p style="color:var(--muted)">Your completed shifts will appear here.</p>';
+    } else {
+      const best = [...weekReport].sort((a,b)=>b.total-a.total)[0];
+      const worst = [...weekReport].sort((a,b)=>a.total-b.total)[0];
+      bestEl.innerHTML =
+        '<div class="row"><b>Best Shift</b><span class="positive">'+best.date+' · '+money(best.total)+'</span></div>'+
+        '<div class="row"><b>Weakest Shift</b><span class="'+(worst.total>=0?'positive':'negative')+'">'+worst.date+' · '+money(worst.total)+'</span></div>';
+    }
+  }
+}
+
+function exportTaxCSV(){
+  let rows=[
+    ["ShiftPilot Tax / Mileage Export"],
+    ["Generated", new Date().toLocaleString()],
+    [],
+    ["Date","Deliveries","Mileage","Gross Earnings","Fuel Spend Logged","Net After Fuel","Hours","Notes"]
+  ];
+  const totalFuel = Number(localStorage.getItem("shiftPilotFuelSpendTotal") || 0) + Number(document.getElementById("fuelSpend")?.value || 0);
+  weekReport.forEach((d,i)=>{
+    const proportionalFuel = weekReport.length ? totalFuel / weekReport.length : 0;
+    rows.push([d.date,d.deliveries,d.totalMiles.toFixed(2),d.total.toFixed(2),proportionalFuel.toFixed(2),(d.total-proportionalFuel).toFixed(2),d.hours.toFixed(2),d.notes||""]);
+  });
+  rows.push([]);
+  rows.push(["Order Detail"]);
+  rows.push(["Date","Order","Type","Miles","Profit/Loss"]);
+  weekReport.forEach(d=>(d.orders||[]).forEach(o=>rows.push([d.date,o.order,o.type,o.miles.toFixed(2),o.result.toFixed(2)])));
+  const csv=rows.map(r=>r.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(",")).join("\\n");
+  const blob=new Blob([csv],{type:"text/csv"});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");
+  a.href=url;
+  a.download="shiftpilot-tax-mileage-export.csv";
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+const shiftPilotOriginalUpdateV9 = update;
+update = function(){
+  shiftPilotOriginalUpdateV9();
+  commercialExtraSave();
+  commercialExtraDashboard();
+};
+
+const shiftPilotOriginalClockOutV9 = clockOut;
+clockOut = function(){
+  const notes = document.getElementById("shiftNotes")?.value || "";
+  const fuelToday = Number(document.getElementById("fuelSpend")?.value || 0);
+  if(fuelToday > 0){
+    fuelSpendTotal += fuelToday;
+    localStorage.setItem("shiftPilotFuelSpendTotal", fuelSpendTotal);
+  }
+  if(typeof totals === "function"){
+    // add note/fuel to the current shift when saved
+    const originalPush = weekReport.push.bind(weekReport);
+    weekReport.push = function(obj){
+      obj.notes = notes;
+      obj.fuelSpend = fuelToday;
+      return originalPush(obj);
+    };
+    shiftPilotOriginalClockOutV9();
+    weekReport.push = originalPush;
+  } else {
+    shiftPilotOriginalClockOutV9();
+  }
+  const fs=document.getElementById("fuelSpend"); if(fs) fs.value="";
+  const sn=document.getElementById("shiftNotes"); if(sn) sn.value="";
+  localStorage.removeItem("shiftPilotFuelSpendToday");
+  localStorage.removeItem("shiftPilotShiftNotes");
+  update();
+};
+
+commercialExtraLoad();
+
+
+function animatedMoney(el,val,prefix='£'){
+  if(!el) return;
+  let start=0;
+  const end=Number(val)||0;
+  const duration=700;
+  const startTime=performance.now();
+  function tick(now){
+    const progress=Math.min((now-startTime)/duration,1);
+    const current=start+(end-start)*progress;
+    el.innerText=prefix+current.toFixed(2);
+    if(progress<1) requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+}
+
+function premiumDashboard(){
+  const total = weekReport.reduce((a,b)=>a+(b.total||0),0);
+  const avg = weekReport.length ? total/weekReport.length : 0;
+  const best = weekReport.length ? [...weekReport].sort((a,b)=>b.total-a.total)[0] : null;
+
+  const perf = document.getElementById("performanceInsights");
+  if(perf){
+    perf.innerHTML =
+    '<div class="row"><b>Average Shift Value</b><span class="positive">'+money(avg)+'</span></div>'+
+    '<div class="row"><b>Most Profitable Shift</b><span>'+(best ? best.date+' · '+money(best.total) : '--')+'</span></div>'+
+    '<div class="row"><b>Business Intelligence</b><span>'+(avg>80?'Strong Earnings Trend':'Building Weekly Trend')+'</span></div>';
+  }
+
+  const live = document.getElementById("liveStatus");
+  if(live){
+    const active = clockInDate && !clockOutDate;
+    const durationText = document.getElementById("duration") ? document.getElementById("duration").innerText : '0h 0m';
+    live.innerHTML =
+    '<div class="grid">'+
+    '<div class="metric"><h3>Shift Status</h3><div class="value">'+(active?'🟢 LIVE':'⚪ OFFLINE')+'</div></div>'+
+    '<div class="metric"><h3>Active Time</h3><div class="value">'+durationText+'</div></div>'+
+    '</div>';
+  }
+
+  const banner=document.getElementById("runningBanner");
+  if(banner){
+    banner.style.background='linear-gradient(135deg,#246bff,#6f5cff,#2eb85c)';
+    banner.style.backgroundSize='200% 200%';
+  }
+}
+
+const shiftPilotOriginalUpdateV10 = update;
+update = function(){
+  shiftPilotOriginalUpdateV10();
+  premiumDashboard();
+
+  const shiftHero=document.getElementById("shiftHero");
+  if(shiftHero){
+    const valueText=shiftHero.innerText.replace(/[^0-9.\-]/g,'');
+    const val=parseFloat(valueText)||0;
+    animatedMoney(shiftHero,val,shiftHero.innerText.includes('Loss')?'Loss £':'Profit £');
+  }
+}
+
+
+
+function updateDarkModeStatus(){
+  const el=document.getElementById('darkModeStatus');
+  if(el){el.innerText=document.body.classList.contains('dark')?'On':'Off';}
+}
+
+function applyTheme(){
+  const theme=document.getElementById('platformTheme').value;
+  localStorage.setItem('shiftpilot_theme',theme);
+
+  const root=document.documentElement;
+
+  if(theme==='dominos'){
+    root.style.setProperty('--blue','#0066cc');
+    root.style.setProperty('--green','#e31837');
+  }else if(theme==='ubereats'){
+    root.style.setProperty('--blue','#000000');
+    root.style.setProperty('--green','#06c167');
+  }else if(theme==='deliveroo'){
+    root.style.setProperty('--blue','#00c1b2');
+    root.style.setProperty('--green','#00a896');
+  }else if(theme==='justeat'){
+    root.style.setProperty('--blue','#ff6b00');
+    root.style.setProperty('--green','#ff8f3d');
+  }else{
+    root.style.setProperty('--blue','#246bff');
+    root.style.setProperty('--green','#2eb85c');
+  }
+}
+
+function saveDefaults(){
+  localStorage.setItem('shiftpilot_default_mpg',document.getElementById('defaultMPG').value);
+  localStorage.setItem('shiftpilot_default_fuel',document.getElementById('defaultFuel').value);
+  alert('Defaults saved');
+}
+
+function updateAchievements(){
+  let totalDeliveries=0;
+  let totalEarnings=0;
+
+  weekReport.forEach(d=>{
+    totalDeliveries+=d.deliveries||0;
+    totalEarnings+=d.total||0;
+  });
+
+  let achievements=[];
+
+  if(totalDeliveries>=25) achievements.push('🏁 25 Deliveries Completed');
+  if(totalDeliveries>=100) achievements.push('🚗 100 Deliveries Milestone');
+  if(totalEarnings>=500) achievements.push('💷 £500 Earnings Achieved');
+  if(totalEarnings>=1000) achievements.push('🏆 £1000 Earnings Milestone');
+
+  if(!achievements.length){
+    achievements=['Start completing shifts to unlock achievements'];
+  }
+
+  document.getElementById('achievementBox').innerHTML=
+    achievements.map(a=>'<div class="row"><b>'+a+'</b><span>Unlocked</span></div>').join('');
+}
+
+function updateShiftHealth(){
+  let total=0;
+  let shifts=weekReport.length||1;
+
+  weekReport.forEach(d=>total+=d.total||0);
+
+  const avg=total/shifts;
+
+  let text='🟡 Average Shift';
+  let cls='positive';
+
+  if(avg>100){
+    text='🟢 Excellent Earnings Trend';
+  }else if(avg<50){
+    text='🔴 Weak Earnings Trend';
+    cls='negative';
+  }
+
+  document.getElementById('shiftHealth').innerHTML=
+    '<div class="row"><b>Current Status</b><span class="'+cls+'">'+text+'</span></div>'+
+    '<div class="row"><b>Average Shift Value</b><span>'+money(avg)+'</span></div>';
+}
+
+function completeOnboarding(){
+  localStorage.setItem('shiftpilot_onboarded','1');
+
+  const t=document.getElementById('onboardTheme').value;
+  const mpg=document.getElementById('onboardMPG').value;
+  const fuel=document.getElementById('onboardFuel').value;
+
+  localStorage.setItem('shiftpilot_theme',t);
+  localStorage.setItem('shiftpilot_default_mpg',mpg);
+  localStorage.setItem('shiftpilot_default_fuel',fuel);
+
+  document.getElementById('defaultMPG').value=mpg;
+  document.getElementById('defaultFuel').value=fuel;
+
+  document.getElementById('mpg').value=mpg;
+  document.getElementById('price').value=fuel;
+
+  document.getElementById('platformTheme').value=t;
+
+  applyTheme();
+  updateDarkModeStatus();
+
+  document.getElementById('onboarding').style.display='none';
+}
+
+window.addEventListener('load',()=>{
+  const onboarded=localStorage.getItem('shiftpilot_onboarded');
+
+  const mpg=localStorage.getItem('shiftpilot_default_mpg');
+  const fuel=localStorage.getItem('shiftpilot_default_fuel');
+  const theme=localStorage.getItem('shiftpilot_theme')||'default';
+
+  if(document.getElementById('defaultMPG') && mpg){
+    document.getElementById('defaultMPG').value=mpg;
+    document.getElementById('mpg').value=mpg;
+  }
+
+  if(document.getElementById('defaultFuel') && fuel){
+    document.getElementById('defaultFuel').value=fuel;
+    document.getElementById('price').value=fuel;
+  }
+
+  if(document.getElementById('platformTheme')){
+    document.getElementById('platformTheme').value=theme;
+  }
+
+  applyTheme();
+
+  if(!onboarded){
+    document.getElementById('onboarding').style.display='flex';
+  }
+
+  setTimeout(()=>{
+    updateAchievements();
+    updateShiftHealth();
+  },500);
+});
+
+const shiftPilotUpdateV11 = update;
+update = function(){
+  shiftPilotUpdateV11();
+  updateAchievements();
+  updateShiftHealth();
+}
+
+
+let gpsWatchId = null;
+let gpsLastPosition = null;
+let gpsMiles = 0;
+
+function toMilesFromCoords(lat1, lon1, lat2, lon2){
+  const R = 3958.8;
+  const dLat = (lat2-lat1) * Math.PI / 180;
+  const dLon = (lon2-lon1) * Math.PI / 180;
+  const a =
+    Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(lat1*Math.PI/180) * Math.cos(lat2*Math.PI/180) *
+    Math.sin(dLon/2) * Math.sin(dLon/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c;
+}
+
+function startGPSDelivery(){
+  if(!navigator.geolocation){
+    alert("GPS is not available on this device/browser.");
+    return;
+  }
+
+  gpsMiles = 0;
+  gpsLastPosition = null;
+
+  const status = document.getElementById("gpsStatus");
+  const dist = document.getElementById("gpsDistance");
+  if(status) status.innerText = "Requesting GPS...";
+  if(dist) dist.innerText = "0.00 miles";
+
+  gpsWatchId = navigator.geolocation.watchPosition(
+    pos => {
+      const lat = pos.coords.latitude;
+      const lon = pos.coords.longitude;
+      const accuracy = pos.coords.accuracy;
+
+      if(accuracy > 60){
+        if(status) status.innerText = "Weak GPS signal";
+        return;
+      }
+
+      if(gpsLastPosition){
+        const add = toMilesFromCoords(gpsLastPosition.lat, gpsLastPosition.lon, lat, lon);
+        if(add < 0.5){
+          gpsMiles += add;
+        }
+      }
+
+      gpsLastPosition = {lat, lon};
+
+      if(status) status.innerText = "Tracking";
+      if(dist) dist.innerText = gpsMiles.toFixed(2) + " miles";
+    },
+    err => {
+      if(status) status.innerText = "GPS permission denied/error";
+      alert("GPS could not be started. Check location permission for Safari/Chrome.");
+    },
+    {
+      enableHighAccuracy: true,
+      maximumAge: 5000,
+      timeout: 15000
+    }
+  );
+}
+
+function stopGPSDelivery(){
+  if(gpsWatchId !== null){
+    navigator.geolocation.clearWatch(gpsWatchId);
+    gpsWatchId = null;
+  }
+
+  const status = document.getElementById("gpsStatus");
+  const dist = document.getElementById("gpsDistance");
+
+  if(status) status.innerText = "Stopped";
+  if(dist) dist.innerText = gpsMiles.toFixed(2) + " miles";
+
+  if(gpsMiles > 0){
+    document.getElementById("distance").value = gpsMiles.toFixed(2);
+    alert("GPS distance added to delivery distance field.");
+  } else {
+    alert("No GPS distance recorded. You can still enter mileage manually.");
+  }
+}
+
+
+function showPrivacyInfo(){
+  alert(
+    "ShiftPilot Privacy Summary\n\n" +
+    "• Shift and earnings data stays on your device.\n" +
+    "• GPS Mileage Assist is optional and user-controlled.\n" +
+    "• GPS data is used locally to calculate distance only.\n" +
+    "• No GPS route data is uploaded to a server.\n" +
+    "• No account, password or payment card details are collected.\n" +
+    "• Exported backups are files you control yourself."
+  );
+}
+
+
+let newWorkerWaiting = null;
+
+function showUpdatePrompt(){
+  const prompt = document.getElementById("updatePrompt");
+  if(prompt){ prompt.style.display = "block"; }
+}
+
+function dismissUpdatePrompt(){
+  const prompt = document.getElementById("updatePrompt");
+  if(prompt){ prompt.style.display = "none"; }
+}
+
+function applyAppUpdate(){
+  if(newWorkerWaiting){
+    newWorkerWaiting.postMessage({type:"SKIP_WAITING"});
+  } else {
+    clearAppCachesAndReload();
+  }
+}
+
+function clearAppCachesAndReload(){
+  if("caches" in window){
+    caches.keys().then(keys => Promise.all(keys.map(key => caches.delete(key)))).then(() => {
+      window.location.reload();
+    });
+  } else {
+    window.location.reload();
+  }
+}
+
+function registerShiftPilotUpdater(){
+  if(!("serviceWorker" in navigator)) return;
+
+  navigator.serviceWorker.register("./sw.js").then(reg => {
+    reg.addEventListener("updatefound", () => {
+      const newWorker = reg.installing;
+      if(!newWorker) return;
+
+      newWorker.addEventListener("statechange", () => {
+        if(newWorker.state === "installed" && navigator.serviceWorker.controller){
+          newWorkerWaiting = newWorker;
+          showUpdatePrompt();
+        }
+      });
+    });
+
+    if(reg.waiting){
+      newWorkerWaiting = reg.waiting;
+      showUpdatePrompt();
+    }
+
+    setInterval(() => {
+      reg.update();
+    }, 30 * 60 * 1000);
+  }).catch(() => {});
+}
+
+if("serviceWorker" in navigator){
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    window.location.reload();
+  });
+}
+
+window.addEventListener("load", registerShiftPilotUpdater);
+
+
+let navHistory = [];
+let addressNotes = {};
+
+function loadNavigationData(){
+  try{
+    navHistory = JSON.parse(localStorage.getItem("shiftpilot_nav_history") || "[]");
+    addressNotes = JSON.parse(localStorage.getItem("shiftpilot_address_notes") || "{}");
+  }catch(e){ navHistory=[]; addressNotes={}; }
+  renderRecentNav();
+}
+
+function cleanPostcode(value){ return String(value || "").trim().toUpperCase().replace(/\s+/g," "); }
+function looksLikeUKPostcode(value){
+  const pc = cleanPostcode(value).replace(/\s/g,"");
+  return /^[A-Z]{1,2}[0-9][A-Z0-9]?[0-9][A-Z]{2}$/.test(pc);
+}
+function formatUKPostcode(value){
+  let pc = cleanPostcode(value).replace(/\s/g,"");
+  return looksLikeUKPostcode(pc) ? pc.slice(0,-3)+" "+pc.slice(-3) : cleanPostcode(value);
+}
+function formatPostcodeLive(){
+  const input=document.getElementById("navAddress"), status=document.getElementById("postcodeStatus");
+  if(!input || !status) return;
+  const value=input.value.trim();
+  if(!value){ status.innerText="Waiting"; status.className=""; return; }
+  if(looksLikeUKPostcode(value)){ status.innerText="UK postcode recognised"; status.className="nav-valid"; showSavedNoteForAddress(formatUKPostcode(value)); }
+  else if(value.length>=5){ status.innerText="Address/search text entered"; status.className="nav-valid"; showSavedNoteForAddress(value); }
+  else { status.innerText="Enter a postcode or address"; status.className="nav-invalid"; }
+}
+function getNavQuery(){
+  const input=document.getElementById("navAddress");
+  if(!input) return "";
+  const raw=input.value.trim();
+  if(!raw){ alert("Enter a postcode or address first."); return ""; }
+  const formatted=looksLikeUKPostcode(raw) ? formatUKPostcode(raw) : raw;
+  input.value=formatted;
+  return formatted;
+}
+function addToNavHistory(query){
+  if(!query) return;
+  navHistory=navHistory.filter(item=>item.query!==query);
+  navHistory.unshift({query,date:new Date().toLocaleString()});
+  navHistory=navHistory.slice(0,10);
+  localStorage.setItem("shiftpilot_nav_history", JSON.stringify(navHistory));
+  renderRecentNav();
+}
+function openAppleMaps(){ const q=getNavQuery(); if(!q)return; addToNavHistory(q); window.location.href="http://maps.apple.com/?q="+encodeURIComponent(q); }
+function openGoogleMaps(){ const q=getNavQuery(); if(!q)return; addToNavHistory(q); window.location.href="https://www.google.com/maps/search/?api=1&query="+encodeURIComponent(q); }
+function openWaze(){ const q=getNavQuery(); if(!q)return; addToNavHistory(q); window.location.href="https://waze.com/ul?q="+encodeURIComponent(q)+"&navigate=yes"; }
+function saveNavLookup(){ const q=getNavQuery(); if(!q)return; addToNavHistory(q); alert("Navigation lookup saved."); }
+function renderRecentNav(){
+  const el=document.getElementById("recentNavList");
+  if(!el) return;
+  if(!navHistory.length){ el.innerHTML='<p style="color:var(--muted)">Recent navigation lookups will appear here.</p>'; return; }
+  el.innerHTML = navHistory.map((item,i)=>'<div class="row"><b>'+item.query+'<br><small>'+item.date+'</small></b><span><button class="btn blue" style="padding:8px;margin:0" onclick="useRecentNav('+i+')">Use</button></span></div>').join("");
+}
+function useRecentNav(i){
+  const item=navHistory[i]; if(!item) return;
+  const input=document.getElementById("navAddress");
+  if(input){ input.value=item.query; formatPostcodeLive(); }
+}
+function saveAddressNote(){
+  const q=getNavQuery(); if(!q)return;
+  const note=document.getElementById("navNote").value.trim();
+  addressNotes[q]=note;
+  localStorage.setItem("shiftpilot_address_notes", JSON.stringify(addressNotes));
+  showSavedNoteForAddress(q);
+  alert("Address note saved.");
+}
+function showSavedNoteForAddress(query){
+  const el=document.getElementById("savedAddressNote");
+  if(!el) return;
+  const formatted=looksLikeUKPostcode(query)?formatUKPostcode(query):query;
+  const note=addressNotes[formatted] || addressNotes[query] || "";
+  if(note){
+    el.innerHTML='<div class="row"><b>Saved Note</b><span>'+note+'</span></div>';
+    const input=document.getElementById("navNote"); if(input) input.value=note;
+  } else {
+    el.innerHTML='<p style="color:var(--muted)">No saved note for this address yet.</p>';
+  }
+}
+window.addEventListener("load", loadNavigationData);
+
+
+async function handleAddressScan(event){
+  const file = event.target.files && event.target.files[0];
+  const status = document.getElementById("scanStatus");
+  const preview = document.getElementById("scanPreview");
+
+  if(!file){
+    if(status) status.innerText = "No image selected";
+    return;
+  }
+
+  if(preview){
+    preview.src = URL.createObjectURL(file);
+    preview.style.display = "block";
+  }
+
+  if(status) status.innerText = "Image captured. Checking OCR support...";
+
+  let detectedText = "";
+
+  try{
+    if("TextDetector" in window){
+      const bitmap = await createImageBitmap(file);
+      const detector = new TextDetector();
+      const results = await detector.detect(bitmap);
+      detectedText = results.map(r => r.rawValue || "").join(" ").trim();
+    }
+  }catch(e){
+    detectedText = "";
+  }
+
+  if(detectedText){
+    applyScannedAddress(detectedText);
+    if(status) status.innerText = "Address text detected and added.";
+    return;
+  }
+
+  const manual = prompt("Automatic OCR is not available or could not read the address clearly. Type or paste the address/postcode shown in the image:", "");
+
+  if(manual && manual.trim()){
+    applyScannedAddress(manual.trim());
+    if(status) status.innerText = "Address added manually from scan.";
+  } else {
+    if(status) status.innerText = "Scan captured. No address added.";
+  }
+}
+
+function applyScannedAddress(text){
+  const nav = document.getElementById("navAddress");
+  if(!nav) return;
+
+  nav.value = String(text || "").replace(/\n/g, " ").replace(/\s+/g, " ").trim();
+
+  if(typeof formatPostcodeLive === "function"){
+    formatPostcodeLive();
+  }
+}
+
+function clearScannedAddress(){
+  const nav = document.getElementById("navAddress");
+  const status = document.getElementById("scanStatus");
+  const preview = document.getElementById("scanPreview");
+  const input = document.getElementById("addressScanInput");
+
+  if(nav) nav.value = "";
+  if(status) status.innerText = "Waiting for scan";
+  if(preview){ preview.src = ""; preview.style.display = "none"; }
+  if(input) input.value = "";
+}
+
+
+function extractUKPostcodeFromText(text){
+  const compact = String(text || "").toUpperCase().replace(/\s+/g, " ");
+  const match = compact.match(/\b([A-Z]{1,2}[0-9][A-Z0-9]?)\s*([0-9][A-Z]{2})\b/);
+  if(!match) return "";
+  return (match[1] + " " + match[2]).replace(/\s+/g, " ").trim();
+}
+
+function buildBestAddressFromOCR(text){
+  let cleaned = String(text || "").replace(/\r/g, "\n").replace(/[|_~]/g, " ").trim();
+  const postcode = extractUKPostcodeFromText(cleaned);
+  let lines = cleaned.split(/\n+/).map(l => l.trim()).filter(Boolean);
+
+  lines = lines.filter(l => {
+    const u = l.toUpperCase();
+    if(/^\d{1,2}:\d{2}/.test(u)) return false;
+    if(u.includes(" PM") || u.includes(" AM")) return false;
+    if(u === "PM" || u === "AM") return false;
+    if(u.includes("NONE")) return false;
+    if(u.length < 2) return false;
+    return true;
+  });
+
+  let joined = lines.join(" ").replace(/\s+/g, " ").trim();
+  if(postcode){
+    joined = joined.replace(new RegExp(postcode.replace(" ",""), "i"), postcode);
+    if(!joined.toUpperCase().includes(postcode)) joined += " " + postcode;
+  }
+  return joined || postcode || cleaned.replace(/\s+/g, " ").trim();
+}
+
+async function handleAddressScan(event){
+  const file = event.target.files && event.target.files[0];
+  const status = document.getElementById("scanStatus");
+  const preview = document.getElementById("scanPreview");
+  const resultBox = document.getElementById("ocrResultText");
+  const useBtn = document.getElementById("useOcrTextBtn");
+
+  if(!file){
+    if(status) status.innerText = "No image selected";
+    return;
+  }
+
+  if(preview){
+    preview.src = URL.createObjectURL(file);
+    preview.style.display = "block";
+  }
+  if(resultBox){
+    resultBox.style.display = "block";
+    resultBox.value = "";
+  }
+  if(useBtn) useBtn.style.display = "none";
+  if(status) status.innerText = "Running OCR locally in the browser...";
+
+  let detectedText = "";
+
+  try{
+    if(window.Tesseract && Tesseract.recognize){
+      const result = await Tesseract.recognize(file, "eng", {
+        logger: m => {
+          if(status && m.status){
+            const pct = m.progress ? " " + Math.round(m.progress * 100) + "%" : "";
+            status.innerText = "OCR: " + m.status + pct;
+          }
+        }
+      });
+      detectedText = result && result.data && result.data.text ? result.data.text : "";
+    }
+  }catch(e){
+    detectedText = "";
+  }
+
+  if(detectedText && detectedText.trim()){
+    const bestAddress = buildBestAddressFromOCR(detectedText);
+    const postcode = extractUKPostcodeFromText(detectedText);
+
+    if(resultBox){
+      resultBox.value = bestAddress;
+      resultBox.style.display = "block";
+    }
+    if(useBtn) useBtn.style.display = "block";
+
+    applyScannedAddress(bestAddress);
+
+    if(status){
+      status.innerText = postcode ? "OCR complete. Postcode detected: " + postcode : "OCR complete. Please check/correct the detected address.";
+    }
+    return;
+  }
+
+  const manual = prompt("OCR could not read the address clearly. Type or paste the address/postcode shown in the image:", "");
+  if(manual && manual.trim()){
+    applyScannedAddress(manual.trim());
+    if(resultBox){
+      resultBox.value = manual.trim();
+      resultBox.style.display = "block";
+    }
+    if(useBtn) useBtn.style.display = "block";
+    if(status) status.innerText = "Address added manually from scan.";
+  } else {
+    if(status) status.innerText = "Scan captured. No address added.";
+  }
+}
+
+function useCorrectedOcrText(){
+  const resultBox = document.getElementById("ocrResultText");
+  if(!resultBox || !resultBox.value.trim()){
+    alert("No OCR text to use.");
+    return;
+  }
+  applyScannedAddress(resultBox.value.trim());
+  alert("Corrected OCR text added to navigation field.");
+}
+
+function applyScannedAddress(text){
+  const nav = document.getElementById("navAddress");
+  if(!nav) return;
+  nav.value = String(text || "").replace(/\n/g, " ").replace(/\s+/g, " ").trim();
+  if(typeof formatPostcodeLive === "function") formatPostcodeLive();
+}
+
+function clearScannedAddress(){
+  const nav = document.getElementById("navAddress");
+  const status = document.getElementById("scanStatus");
+  const preview = document.getElementById("scanPreview");
+  const input = document.getElementById("addressScanInput");
+  const resultBox = document.getElementById("ocrResultText");
+  const useBtn = document.getElementById("useOcrTextBtn");
+
+  if(nav) nav.value = "";
+  if(status) status.innerText = "Waiting for scan";
+  if(preview){ preview.src = ""; preview.style.display = "none"; }
+  if(input) input.value = "";
+  if(resultBox){ resultBox.value = ""; resultBox.style.display = "none"; }
+  if(useBtn) useBtn.style.display = "none";
+}
+
+
+function manualCheckForUpdates(){
+  if(!("serviceWorker" in navigator)){
+    alert("Service worker updates are not supported in this browser.");
+    return;
+  }
+  navigator.serviceWorker.getRegistration().then(reg => {
+    if(reg){
+      reg.update().then(() => {
+        alert("Update check complete. If an update is available, the update prompt will appear shortly.");
+      });
+    } else {
+      alert("No service worker registration found yet. Reopen the app and try again.");
+    }
+  }).catch(() => alert("Unable to check for updates."));
+}
+
+function clearAppCachesAndReload(){
+  if("caches" in window){
+    caches.keys().then(keys => Promise.all(keys.map(key => caches.delete(key)))).then(() => window.location.reload());
+  } else {
+    window.location.reload();
+  }
+}
+
+
+function extractUKPostcodeFromText(text){
+ const c=String(text||"").toUpperCase().replace(/\s+/g," ");
+ const m=c.match(/\b([A-Z]{1,2}[0-9][A-Z0-9]?)\s*([0-9][A-Z]{2})\b/);
+ return m?(m[1]+" "+m[2]).trim():"";
+}
+function buildBestAddressFromOCR(text){
+ let postcode=extractUKPostcodeFromText(text);
+ let lines=String(text||"").replace(/\r/g,"\n").split(/\n+/).map(l=>l.replace(/\s+/g," ").trim()).filter(Boolean);
+ let streetWords="CLOSE|ROAD|STREET|LANE|AVENUE|DRIVE|WAY|GARDENS|GROVE|PLACE|CRESCENT|COURT|MEWS|TERRACE|HILL";
+ lines=lines.filter(l=>{
+   let u=l.toUpperCase();
+   if(/\d{1,2}[:.]\d{2}[:.]\d{2}/.test(u)) return false;
+   if(/^\d{1,2}[:.]\d{2}/.test(u)) return false;
+   if(u.includes("PM")||u.includes("AM")||u.includes("NONE")||u.includes("SUMMARY")||u.includes("SAUCE")) return false;
+   return true;
+ });
+ let street="";
+ for(const l of lines){
+   if(new RegExp(streetWords,"i").test(l)){street=l;break;}
+ }
+ if(street){
+   const re=new RegExp("(\\d{1,4}\\s+[A-Z][A-Z\\s']{2,}\\s+(?:"+streetWords+"))","i");
+   const matches=[...street.matchAll(new RegExp(re,"gi"))];
+   if(matches.length) street=matches[matches.length-1][1].trim();
+   street=street.replace(/\s+/g," ").trim();
+ }
+ let town="";
+ if(postcode){
+   const pc=postcode.replace(/\s/g,"");
+   const t=lines.find(l=>l.toUpperCase().replace(/\s/g,"").includes(pc));
+   if(t) town=t.replace(new RegExp(pc,"i"),postcode).replace(postcode,"").replace(/\bUK\b/ig,"").replace(/[,]+/g," ").replace(/\s+/g," ").trim();
+ }
+ let parts=[];
+ if(street) parts.push(street);
+ if(town && (!street || !street.toUpperCase().includes(town.toUpperCase()))) parts.push(town);
+ if(postcode) parts.push(postcode);
+ return parts.join(" ").replace(/\s+/g," ").trim() || (street || postcode || String(text||"").replace(/\s+/g," ").trim());
+}
+function showOcrActionButtons(){
+ const a=document.getElementById("useOcrTextBtn"),b=document.getElementById("ocrNavButtons"),c=document.getElementById("useOcrWazeBtn");
+ if(a)a.style.display="block"; if(b)b.style.display="grid"; if(c)c.style.display="block";
+}
+async function handleAddressScan(event){
+ const file=event.target.files&&event.target.files[0],status=document.getElementById("scanStatus"),preview=document.getElementById("scanPreview"),box=document.getElementById("ocrResultText");
+ if(!file){if(status)status.innerText="No image selected";return;}
+ if(preview){preview.src=URL.createObjectURL(file);preview.style.display="block";}
+ if(box){box.style.display="block";box.value="";}
+ if(status)status.innerText="Running OCR locally in the browser...";
+ let detected="";
+ try{
+   if(window.Tesseract&&Tesseract.recognize){
+     const r=await Tesseract.recognize(file,"eng",{logger:m=>{if(status&&m.status){status.innerText="OCR: "+m.status+(m.progress?" "+Math.round(m.progress*100)+"%":"");}}});
+     detected=r&&r.data&&r.data.text?r.data.text:"";
+   }
+ }catch(e){detected="";}
+ if(detected.trim()){
+   const best=buildBestAddressFromOCR(detected),pc=extractUKPostcodeFromText(detected);
+   if(box)box.value=best;
+   applyScannedAddress(best); showOcrActionButtons();
+   if(status)status.innerText=pc?"OCR complete. Postcode detected: "+pc+". Check address, then tap a map button.":"OCR complete. Check/correct address, then tap a map button.";
+   return;
+ }
+ const manual=prompt("OCR could not read the address clearly. Type or paste the address/postcode shown in the image:","");
+ if(manual&&manual.trim()){applyScannedAddress(manual.trim()); if(box){box.value=manual.trim();box.style.display="block";} showOcrActionButtons(); if(status)status.innerText="Address added manually. Tap a map button to navigate.";}
+ else if(status)status.innerText="Scan captured. No address added.";
+}
+function useCorrectedOcrText(){
+ const box=document.getElementById("ocrResultText");
+ if(!box||!box.value.trim()){alert("No OCR text to use.");return false;}
+ applyScannedAddress(box.value.trim()); showOcrActionButtons(); return true;
+}
+function useOcrAndOpenApple(){if(useCorrectedOcrText())openAppleMaps();}
+function useOcrAndOpenGoogle(){if(useCorrectedOcrText())openGoogleMaps();}
+function useOcrAndOpenWaze(){if(useCorrectedOcrText())openWaze();}
+function clearScannedAddress(){
+ const ids=["navAddress","scanStatus","scanPreview","addressScanInput","ocrResultText","useOcrTextBtn","ocrNavButtons","useOcrWazeBtn"];
+ const nav=document.getElementById("navAddress"); if(nav)nav.value="";
+ const st=document.getElementById("scanStatus"); if(st)st.innerText="Waiting for scan";
+ const pr=document.getElementById("scanPreview"); if(pr){pr.src="";pr.style.display="none";}
+ const inp=document.getElementById("addressScanInput"); if(inp)inp.value="";
+ const box=document.getElementById("ocrResultText"); if(box){box.value="";box.style.display="none";}
+ const use=document.getElementById("useOcrTextBtn"); if(use)use.style.display="none";
+ const nb=document.getElementById("ocrNavButtons"); if(nb)nb.style.display="none";
+ const wz=document.getElementById("useOcrWazeBtn"); if(wz)wz.style.display="none";
+}
+
+
+let hmrcJourneys = [];
+
+function loadHmrcJourneys(){
+  try{
+    hmrcJourneys = JSON.parse(localStorage.getItem("shiftpilot_hmrc_journeys") || "[]");
+  }catch(e){
+    hmrcJourneys = [];
+  }
+  renderHmrcJourneys();
+}
+
+function saveHmrcJourney(){
+  const start = document.getElementById("hmrcStartPostcode").value.trim().toUpperCase();
+  const finish = document.getElementById("hmrcFinishPostcode").value.trim().toUpperCase();
+  const miles = parseFloat(document.getElementById("hmrcMiles").value || "0");
+  const purpose = document.getElementById("hmrcPurpose").value.trim() || "Business Journey";
+
+  if(!start || !finish || !miles){
+    alert("Please complete start postcode, finish postcode and mileage.");
+    return;
+  }
+
+  hmrcJourneys.unshift({
+    start,
+    finish,
+    miles,
+    purpose,
+    date: new Date().toLocaleDateString()
+  });
+
+  localStorage.setItem("shiftpilot_hmrc_journeys", JSON.stringify(hmrcJourneys));
+
+  document.getElementById("hmrcStartPostcode").value = "";
+  document.getElementById("hmrcFinishPostcode").value = "";
+  document.getElementById("hmrcMiles").value = "";
+  document.getElementById("hmrcPurpose").value = "";
+
+  renderHmrcJourneys();
+
+  alert("HMRC mileage journey saved.");
+}
+
+function renderHmrcJourneys(){
+  const list = document.getElementById("hmrcJourneyList");
+  const totalMilesEl = document.getElementById("hmrcTotalMiles");
+  const allowanceEl = document.getElementById("hmrcAllowance");
+
+  if(!list) return;
+
+  if(!hmrcJourneys.length){
+    list.innerHTML = '<p style="color:var(--muted)">No HMRC journeys logged yet.</p>';
+  } else {
+    list.innerHTML = hmrcJourneys.map(j => `
+      <div class="row">
+        <b>${j.start} → ${j.finish}<br><small>${j.date} • ${j.purpose}</small></b>
+        <span>${j.miles.toFixed(1)} mi</span>
+      </div>
+    `).join("");
+  }
+
+  const totalMiles = hmrcJourneys.reduce((a,b)=>a+b.miles,0);
+  const allowance = totalMiles * 0.45;
+
+  if(totalMilesEl) totalMilesEl.innerText = totalMiles.toFixed(1) + " miles";
+  if(allowanceEl) allowanceEl.innerText = "£" + allowance.toFixed(2);
+}
+
+function exportHmrcCsv(){
+  if(!hmrcJourneys.length){
+    alert("No HMRC journey data available.");
+    return;
+  }
+
+  let csv = "Date,Start Postcode,Finish Postcode,Business Miles,Purpose\\n";
+
+  hmrcJourneys.forEach(j => {
+    csv += `"${j.date}","${j.start}","${j.finish}","${j.miles}","${j.purpose}"\\n`;
+  });
+
+  const blob = new Blob([csv], {type:"text/csv"});
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "ShiftPilot_HMRC_Report.csv";
+  a.click();
+
+  URL.revokeObjectURL(url);
+}
+
+window.addEventListener("load", loadHmrcJourneys);
+
+
+let driverProfile = {};
+function loadDriverProfile(){
+  try{ driverProfile = JSON.parse(localStorage.getItem("shiftpilot_driver_profile") || "{}"); }catch(e){ driverProfile = {}; }
+  ["driverName","driverVehicle","driverWorkplace"].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el && driverProfile[id]) el.value=driverProfile[id];
+  });
+}
+function saveDriverProfile(){
+  driverProfile = {
+    driverName: (document.getElementById("driverName")||{}).value || "",
+    driverVehicle: (document.getElementById("driverVehicle")||{}).value || "",
+    driverWorkplace: (document.getElementById("driverWorkplace")||{}).value || ""
+  };
+  localStorage.setItem("shiftpilot_driver_profile", JSON.stringify(driverProfile));
+  alert("Driver profile saved.");
+}
+function getHmrcRate(){ return 0.55; }
+function fillHmrcFromNav(){
+  const nav=document.getElementById("navAddress");
+  const finish=document.getElementById("hmrcFinishPostcode");
+  if(nav && finish && nav.value.trim()) finish.value = nav.value.trim();
+  else alert("No current navigation address found.");
+}
+function fillHmrcFromGps(){
+  const milesInput=document.getElementById("hmrcMiles");
+  if(typeof gpsMiles !== "undefined" && gpsMiles>0 && milesInput) milesInput.value = gpsMiles.toFixed(2);
+  else{
+    const distance=document.getElementById("distance");
+    if(distance && distance.value && milesInput) milesInput.value=distance.value;
+    else alert("No GPS/distance mileage found.");
+  }
+}
+function saveHmrcJourney(){
+  const start = (document.getElementById("hmrcStartPostcode")||{}).value?.trim() || "";
+  const finish = (document.getElementById("hmrcFinishPostcode")||{}).value?.trim() || "";
+  const miles = parseFloat((document.getElementById("hmrcMiles")||{}).value || "0");
+  const purpose = (document.getElementById("hmrcPurpose")||{}).value?.trim() || "Business";
+  if(!finish || !miles){ alert("Please enter at least a finish address/postcode and business miles."); return; }
+  hmrcJourneys.unshift({start:start||"Workplace/Base",finish,miles,purpose,date:new Date().toLocaleDateString("en-GB"),rate:getHmrcRate()});
+  localStorage.setItem("shiftpilot_hmrc_journeys", JSON.stringify(hmrcJourneys));
+  ["hmrcStartPostcode","hmrcFinishPostcode","hmrcMiles","hmrcPurpose"].forEach(id=>{const el=document.getElementById(id); if(el) el.value="";});
+  renderHmrcJourneys();
+  alert("HMRC mileage journey saved.");
+}
+function renderHmrcJourneys(){
+  const list=document.getElementById("hmrcJourneyList");
+  const totalMilesEl=document.getElementById("hmrcTotalMiles");
+  const allowanceEl=document.getElementById("hmrcAllowance");
+  if(!list) return;
+  const rate=getHmrcRate();
+  if(!hmrcJourneys.length) list.innerHTML='<p style="color:var(--muted)">No HMRC journeys logged yet.</p>';
+  else list.innerHTML=hmrcJourneys.slice(0,12).map(j=>`<div class="row"><b>${j.start||"Base"} → ${j.finish}<br><small>${j.date} • ${j.purpose||"Business"}</small></b><span>${Number(j.miles).toFixed(1)} mi<br><small>£${(Number(j.miles)*rate).toFixed(2)}</small></span></div>`).join("");
+  const totalMiles=hmrcJourneys.reduce((a,b)=>a+Number(b.miles||0),0);
+  if(totalMilesEl) totalMilesEl.innerText=totalMiles.toFixed(1)+" miles";
+  if(allowanceEl) allowanceEl.innerText="£"+(totalMiles*rate).toFixed(2);
+}
+function exportHmrcCsv(){
+  if(!hmrcJourneys.length){ alert("No HMRC journey data available."); return; }
+  const rate=getHmrcRate();
+  let csv="Date,From,To,Purpose,Distance,Rate,Amount\n";
+  hmrcJourneys.forEach(j=>{csv += `"${j.date}","${j.start}","${j.finish}","${j.purpose}","${Number(j.miles).toFixed(2)}","£${rate.toFixed(2)}","£${(Number(j.miles)*rate).toFixed(2)}"\n`;});
+  const blob=new Blob([csv],{type:"text/csv"});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a"); a.href=url; a.download="ShiftPilot_HMRC_Mileage_Report.csv"; a.click();
+  URL.revokeObjectURL(url);
+}
+function generateHmrcReport(){
+  if(!hmrcJourneys.length){ alert("No HMRC journey data available."); return; }
+  loadDriverProfile();
+  const rate=getHmrcRate();
+  const totalMiles=hmrcJourneys.reduce((a,b)=>a+Number(b.miles||0),0);
+  const totalAmount=totalMiles*rate;
+  const today=new Date().toLocaleDateString("en-GB");
+  const rows=[...hmrcJourneys].reverse().map(j=>`<tr><td>${j.date}</td><td>${j.start||"Workplace/Base"}</td><td>${j.finish}</td><td>${j.purpose||"Business"}</td><td>${Number(j.miles).toFixed(2)} mi</td><td>£${rate.toFixed(2)}</td><td>£${(Number(j.miles)*rate).toFixed(2)}</td></tr>`).join("");
+  const content=`<div style="display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap"><div><h1 style="margin:0">ShiftPilot Mileage Report</h1><p style="margin:4px 0;color:#6f84a0">Generated ${today}</p></div><div style="text-align:right"><b>${driverProfile.driverName||"Driver name not set"}</b><br>${driverProfile.driverVehicle||"Vehicle not set"}<br>${driverProfile.driverWorkplace||"Workplace/Base not set"}</div></div><h2>Summary</h2><div class="hmrc-report-summary"><div><b>Type</b><br>Business</div><div><b>Total Distance</b><br>${totalMiles.toFixed(2)} mi</div><div><b>Estimated Allowance</b><br>£${totalAmount.toFixed(2)}</div></div><p><b>Rate:</b> £${rate.toFixed(2)} per mile. Please confirm current HMRC mileage rules with HMRC or your accountant.</p><h2>Journey Log</h2><table class="hmrc-report-table"><thead><tr><th>Date</th><th>From</th><th>To</th><th>Purpose</th><th>Distance</th><th>Rate</th><th>Amount</th></tr></thead><tbody>${rows}</tbody></table>`;
+  const box=document.getElementById("hmrcReportContent"),modal=document.getElementById("hmrcReportModal");
+  if(box) box.innerHTML=content;
+  if(modal) modal.style.display="flex";
+}
+function closeHmrcReport(){const modal=document.getElementById("hmrcReportModal"); if(modal) modal.style.display="none";}
+window.addEventListener("load", loadDriverProfile);
+
+
+function normaliseOcrTextForPostcode(text){
+  return String(text||"").toUpperCase().replace(/[|]/g,"I").replace(/[’‘`]/g,"'").replace(/\s+/g," ").trim();
+}
+function extractUKPostcodeFromText(text){
+  const t=normaliseOcrTextForPostcode(text);
+  const m=t.match(/\b([A-Z]{1,2}[0-9][A-Z0-9]?)\s*([0-9][A-Z]{2})\b/);
+  if(m) return (m[1]+" "+m[2]).trim();
+  const m2=t.match(/\b([A-Z]{1,2})\s*([0-9])\s*([A-Z0-9]?)\s*([0-9])\s*([A-Z])\s*([A-Z])\b/);
+  if(m2) return (m2[1]+m2[2]+(m2[3]||"")+" "+m2[4]+m2[5]+m2[6]).trim();
+  return "";
+}
+function scoreAddressLine(line){
+  const u=String(line||"").toUpperCase();
+  let s=0;
+  if(/\b\d{1,4}\b/.test(u)) s+=4;
+  if(/\b(CLOSE|ROAD|STREET|LANE|AVENUE|DRIVE|WAY|GARDENS|GROVE|PLACE|CRESCENT|COURT|MEWS|TERRACE|HILL|PARK|ROW|RISE|VIEW|WALK|CROFT|GREEN|WOOD|TREE)\b/.test(u)) s+=9;
+  if(/[A-Z]{1,2}[0-9][A-Z0-9]?\s*[0-9][A-Z]{2}/.test(u)) s+=6;
+  if(/\b(ORDER|TOTAL|PAID|CARD|CASH|SAUCE|PIZZA|DELIVERY|COLLECT|RECEIPT|NONE|SUMMARY|PHONE|TEL)\b/.test(u)) s-=8;
+  if(/\d{1,2}[:.]\d{2}/.test(u)) s-=5;
+  if(u.length<3) s-=4;
+  return s;
+}
+function buildBestAddressFromOCR(text){
+  const raw=String(text||"").replace(/\r/g,"\n").replace(/[|_~]/g," ");
+  const postcode=extractUKPostcodeFromText(raw);
+  let lines=raw.split(/\n+/).map(l=>l.replace(/\s+/g," ").trim()).filter(Boolean);
+  const expanded=[];
+  lines.forEach(l=>{
+    expanded.push(l);
+    const m=l.match(/(\d{1,4}\s+[A-Z][A-Z\s']{2,}\s+(?:CLOSE|ROAD|STREET|LANE|AVENUE|DRIVE|WAY|GARDENS|GROVE|PLACE|CRESCENT|COURT|MEWS|TERRACE|HILL|PARK|ROW|RISE|VIEW|WALK|CROFT|GREEN|WOOD|TREE))/i);
+    if(m) expanded.push(m[1]);
+  });
+  lines=expanded;
+  const scored=lines.map(line=>({line,score:scoreAddressLine(line)})).sort((a,b)=>b.score-a.score);
+  let street=scored.length&&scored[0].score>0?scored[0].line:"";
+  const streetWords="CLOSE|ROAD|STREET|LANE|AVENUE|DRIVE|WAY|GARDENS|GROVE|PLACE|CRESCENT|COURT|MEWS|TERRACE|HILL|PARK|ROW|RISE|VIEW|WALK|CROFT|GREEN|WOOD|TREE";
+  if(street){
+    const re=new RegExp("(\\d{1,4}\\s+[A-Z][A-Z\\s']{2,}\\s+(?:"+streetWords+"))","gi");
+    const matches=[...street.matchAll(re)];
+    if(matches.length) street=matches[matches.length-1][1].trim();
+  }
+  let town="";
+  if(postcode){
+    const pc=postcode.replace(/\s/g,"");
+    const pcLine=lines.find(l=>l.toUpperCase().replace(/\s/g,"").includes(pc));
+    if(pcLine) town=pcLine.replace(new RegExp(pc,"i"),postcode).replace(postcode,"").replace(/\b(UK|UNITED KINGDOM)\b/ig,"").replace(/[,]+/g," ").replace(/\s+/g," ").trim();
+  }
+  let parts=[];
+  if(street) parts.push(street);
+  if(town && (!street || !street.toUpperCase().includes(town.toUpperCase()))) parts.push(town);
+  if(postcode) parts.push(postcode);
+  return parts.join(" ").replace(/\s+/g," ").trim() || raw.replace(/\s+/g," ").trim();
+}
+function canvasToBlob(canvas){return new Promise(resolve=>canvas.toBlob(resolve,"image/png",0.95));}
+async function makeEnhancedOcrImage(file,mode){
+  const bitmap=await createImageBitmap(file);
+  const maxWidth=1800;
+  const scale=Math.min(maxWidth/bitmap.width,1.8);
+  const w=Math.round(bitmap.width*scale),h=Math.round(bitmap.height*scale);
+  const canvas=document.createElement("canvas");
+  canvas.width=w; canvas.height=h;
+  const ctx=canvas.getContext("2d",{willReadFrequently:true});
+  ctx.drawImage(bitmap,0,0,w,h);
+  const img=ctx.getImageData(0,0,w,h),data=img.data;
+  for(let i=0;i<data.length;i+=4){
+    let gray=0.299*data[i]+0.587*data[i+1]+0.114*data[i+2];
+    gray=(gray-128)*1.75+128;
+    if(mode==="postcode") gray=gray>150?255:0;
+    else gray=gray>188?255:Math.max(0,Math.min(255,gray));
+    data[i]=data[i+1]=data[i+2]=gray;
+  }
+  ctx.putImageData(img,0,0);
+  const prev=document.getElementById("ocrCanvasPreview");
+  if(prev){prev.width=w;prev.height=h;prev.style.display="block";prev.getContext("2d").drawImage(canvas,0,0);}
+  return await canvasToBlob(canvas);
+}
+async function runTesseractOnImage(source,status,label){
+  if(!window.Tesseract||!Tesseract.recognize) return "";
+  const result=await Tesseract.recognize(source,"eng",{
+    logger:m=>{if(status&&m.status){status.innerText=label+": "+m.status+(m.progress?" "+Math.round(m.progress*100)+"%":"");}}
+  });
+  return result&&result.data&&result.data.text?result.data.text:"";
+}
+async function handleAddressScan(event){
+  const file=event.target.files&&event.target.files[0];
+  const status=document.getElementById("scanStatus"),preview=document.getElementById("scanPreview"),box=document.getElementById("ocrResultText");
+  const mode=(document.getElementById("ocrModeSelect")||{}).value||"enhanced";
+  if(!file){if(status)status.innerText="No image selected";return;}
+  if(preview){preview.src=URL.createObjectURL(file);preview.style.display="block";}
+  if(box){box.style.display="block";box.value="";}
+  ["useOcrTextBtn","ocrNavButtons","useOcrWazeBtn"].forEach(id=>{const el=document.getElementById(id);if(el)el.style.display="none";});
+  if(mode==="manual"){
+    const manual=prompt("Type or paste the address/postcode shown on the slip:","");
+    if(manual&&manual.trim()){applyScannedAddress(manual.trim()); if(box)box.value=manual.trim(); showOcrActionButtons(); if(status)status.innerText="Manual address added. Tap a map button to navigate.";}
+    return;
+  }
+  if(status)status.innerText="Preparing enhanced receipt image...";
+  let combined="";
+  try{
+    const enhanced=await makeEnhancedOcrImage(file,mode);
+    combined+=await runTesseractOnImage(enhanced,status,"Enhanced OCR");
+    if(!extractUKPostcodeFromText(combined)) combined+="\n"+await runTesseractOnImage(file,status,"Second OCR pass");
+  }catch(e){console.log(e);}
+  if(combined.trim()){
+    const best=buildBestAddressFromOCR(combined),pc=extractUKPostcodeFromText(combined);
+    if(box){box.value=best;box.style.display="block";}
+    applyScannedAddress(best); showOcrActionButtons();
+    if(status)status.innerText=pc?"OCR complete. Postcode detected: "+pc+". Check house number, then choose a map.":"OCR complete. Check/correct address, then choose a map.";
+    return;
+  }
+  const manual=prompt("OCR still could not read the slip clearly. Type or paste the address/postcode:","");
+  if(manual&&manual.trim()){applyScannedAddress(manual.trim()); if(box)box.value=manual.trim(); showOcrActionButtons(); if(status)status.innerText="Address added manually. Tap a map button to navigate.";}
+  else if(status)status.innerText="OCR failed. Try retaking closer to the address block only.";
+}
+function useCorrectedOcrText(){
+  const box=document.getElementById("ocrResultText");
+  if(!box||!box.value.trim()){alert("No OCR text to use.");return false;}
+  applyScannedAddress(box.value.trim()); showOcrActionButtons(); return true;
+}
+function clearScannedAddress(){
+  const nav=document.getElementById("navAddress"),status=document.getElementById("scanStatus"),preview=document.getElementById("scanPreview"),input=document.getElementById("addressScanInput"),box=document.getElementById("ocrResultText"),canvas=document.getElementById("ocrCanvasPreview");
+  if(nav)nav.value=""; if(status)status.innerText="Waiting for scan"; if(preview){preview.src="";preview.style.display="none";} if(canvas)canvas.style.display="none"; if(input)input.value=""; if(box){box.value="";box.style.display="none";}
+  ["useOcrTextBtn","ocrNavButtons","useOcrWazeBtn"].forEach(id=>{const el=document.getElementById(id);if(el)el.style.display="none";});
+}
+
+</script>
+</body>
+</html>
